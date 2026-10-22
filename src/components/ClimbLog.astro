@@ -1,0 +1,21 @@
+---
+interface Props { climbing: NonNullable<import('../lib/content').Post['data']['climbing']>; }
+const { climbing } = Astro.props;
+---
+<section class="climb" aria-label="ボルダリング記録">
+  {climbing.place && <p class="eyebrow">📍 {climbing.place}</p>}
+  <table>
+    <thead><tr><th>課題</th><th>グレード</th><th>結果</th></tr></thead>
+    <tbody>
+      {climbing.sends.map((s) => (
+        <tr><td>{s.name ?? '—'}</td><td class="num">{s.grade}</td><td><span class:list={['chip', { 'is-accent': s.status === '完登' || s.status === 'Flash' }]}>{s.status}</span></td></tr>
+      ))}
+    </tbody>
+  </table>
+</section>
+<style>
+  .climb { margin: 3rem 0; padding: 1.5rem 0; border-block: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { text-align: left; font-size: .7rem; letter-spacing: .15em; color: var(--ink-faint); font-weight: 500; padding: .5rem; }
+  td { padding: .6rem .5rem; border-top: 1px solid var(--line); }
+</style>

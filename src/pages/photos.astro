@@ -1,0 +1,36 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { CATEGORIES } from '../consts';
+import { fmtDate } from '../lib/content';
+const photos = (await getCollection('photos')).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+<Base title="Photos" description="山・道・岩の写真">
+  <div class="container">
+    <header class="page-head"><p class="eyebrow">Photos</p><h1>写真</h1></header>
+    <div class="masonry">
+      {photos.map((p) => (
+        <figure>
+          <a href={p.data.image.src} target="_blank" rel="noopener">
+            <Image src={p.data.image} alt={p.data.title} widths={[480, 900]} sizes="(max-width: 700px) 100vw, 33vw" />
+          </a>
+          <figcaption>
+            <span>{p.data.title}</span>
+            <span class="eyebrow">{CATEGORIES[p.data.category].en} · <span class="num">{fmtDate(p.data.date)}</span></span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 2.5rem; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+  .masonry { columns: 3 18rem; column-gap: 1.5rem; }
+  figure { break-inside: avoid; margin: 0 0 2rem; }
+  figure a { display: block; overflow: hidden; }
+  figure :global(img) { width: 100%; transition: transform 1.2s var(--ease), filter .6s; filter: saturate(.85); }
+  figure a:hover :global(img) { transform: scale(1.03); filter: saturate(1); }
+  figcaption { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: .85rem; padding-top: .6rem; font-family: var(--serif); }
+</style>

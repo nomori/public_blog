@@ -1,0 +1,96 @@
+{
+  "title": "大倉尾根から塔ノ岳へ",
+  "date": "2026-10-11T21:30:00.000Z",
+  "category": "hike",
+  "location": "神奈川県 秦野市",
+  "distanceKm": 12.96,
+  "elevationGainM": 1177,
+  "elevationLossM": 1176,
+  "maxElevationM": 1489,
+  "minElevationM": 290,
+  "movingTime": "3h 33m",
+  "elapsedTime": "3h 59m",
+  "startTime": "2026-10-11T21:30:00.000Z",
+  "endTime": "2026-10-12T01:28:32.000Z",
+  "maxEleTime": "2026-10-11T23:36:40.000Z",
+  "splits": [
+    {
+      "km": 1,
+      "dist": 1.03,
+      "sec": 1216,
+      "dEle": 247
+    },
+    {
+      "km": 2,
+      "dist": 0.98,
+      "sec": 1140,
+      "dEle": 200
+    },
+    {
+      "km": 3,
+      "dist": 1.02,
+      "sec": 1216,
+      "dEle": 190
+    },
+    {
+      "km": 4,
+      "dist": 1,
+      "sec": 1140,
+      "dEle": 158
+    },
+    {
+      "km": 5,
+      "dist": 0.98,
+      "sec": 1178,
+      "dEle": 172
+    },
+    {
+      "km": 6,
+      "dist": 1,
+      "sec": 1140,
+      "dEle": 164
+    },
+    {
+      "km": 7,
+      "dist": 1.01,
+      "sec": 2524,
+      "dEle": -19
+    },
+    {
+      "km": 8,
+      "dist": 1,
+      "sec": 780,
+      "dEle": -159
+    },
+    {
+      "km": 9,
+      "dist": 1.01,
+      "sec": 832,
+      "dEle": -164
+    },
+    {
+      "km": 10,
+      "dist": 0.97,
+      "sec": 754,
+      "dEle": -168
+    },
+    {
+      "km": 11,
+      "dist": 1.02,
+      "sec": 832,
+      "dEle": -195
+    },
+    {
+      "km": 12,
+      "dist": 0.99,
+      "sec": 780,
+      "dEle": -183
+    },
+    {
+      "km": 13,
+      "dist": 0.96,
+      "sec": 780,
+      "dEle": -239
+    }
+  ]
+}

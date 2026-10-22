@@ -1,0 +1,78 @@
+{
+  "title": "羊蹄山",
+  "date": "2026-08-30T20:23:58.000Z",
+  "category": "hike",
+  "location": "北海道 京極町",
+  "distanceKm": 9.71,
+  "elevationGainM": 1471,
+  "elevationLossM": 1464,
+  "maxElevationM": 1890,
+  "minElevationM": 410,
+  "movingTime": "3h 36m",
+  "elapsedTime": "5h 58m",
+  "startTime": "2026-08-30T20:23:58.000Z",
+  "endTime": "2026-08-31T02:22:23.000Z",
+  "maxEleTime": "2026-08-30T23:35:38.000Z",
+  "splits": [
+    {
+      "km": 1,
+      "dist": 1,
+      "sec": 796,
+      "dEle": 131
+    },
+    {
+      "km": 2,
+      "dist": 1,
+      "sec": 1370,
+      "dEle": 226
+    },
+    {
+      "km": 3,
+      "dist": 1.01,
+      "sec": 2511,
+      "dEle": 339
+    },
+    {
+      "km": 4,
+      "dist": 0.98,
+      "sec": 3741,
+      "dEle": 469
+    },
+    {
+      "km": 5,
+      "dist": 1.02,
+      "sec": 3995,
+      "dEle": 308
+    },
+    {
+      "km": 6,
+      "dist": 0.98,
+      "sec": 3116,
+      "dEle": -367
+    },
+    {
+      "km": 7,
+      "dist": 1,
+      "sec": 2621,
+      "dEle": -495
+    },
+    {
+      "km": 8,
+      "dist": 1,
+      "sec": 1782,
+      "dEle": -318
+    },
+    {
+      "km": 9,
+      "dist": 1.01,
+      "sec": 992,
+      "dEle": -212
+    },
+    {
+      "km": 10,
+      "dist": 0.7,
+      "sec": 581,
+      "dEle": -71
+    }
+  ]
+}

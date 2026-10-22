@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getPosts } from '../../lib/content';
+import { CATEGORIES } from '../../consts';
+const posts = await getPosts();
+const count = new Map<string, { label: string; n: number }>();
+for (const p of posts) {
+  const c = p.data.category;
+  count.set(c, { label: CATEGORIES[c].label, n: (count.get(c)?.n ?? 0) + 1 });
+  for (const t of p.data.tags) {
+    const k = t.toLowerCase();
+    count.set(k, { label: t, n: (count.get(k)?.n ?? 0) + 1 });
+  }
+}
+const tags = [...count.entries()].sort((a, b) => b[1].n - a[1].n);
+---
+<Base title="Tags">
+  <div class="measure">
+    <header class="page-head"><p class="eyebrow">Tags</p><h1>タグ</h1></header>
+    <ul>
+      {tags.map(([k, v]) => (
+        <li><a href={`/tags/${encodeURIComponent(k)}/`} class="chip">#{v.label} <span class="num">{v.n}</span></a></li>
+      ))}
+    </ul>
+  </div>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 2rem; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+  ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
+  .chip { font-size: .85rem; padding: .3rem .9rem; }
+  .chip span { color: var(--ink-faint); margin-left: .3rem; }
+</style>

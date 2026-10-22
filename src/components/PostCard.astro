@@ -1,0 +1,43 @@
+---
+import { Image } from 'astro:assets';
+import { CATEGORIES } from '../consts';
+import { fmtDate, type Post } from '../lib/content';
+
+interface Props { post: Post; }
+const { post } = Astro.props;
+const { title, description, date, category, cover, activity } = post.data;
+---
+<article class="card">
+  <a href={`/posts/${post.id}/`} class="link" id={`post-${post.id}`}>
+    {cover && (
+      <div class="thumb">
+        <Image src={cover} alt="" widths={[480, 800]} sizes="(max-width: 700px) 100vw, 33vw" />
+      </div>
+    )}
+    <div class="meta">
+      <span class="eyebrow">{CATEGORIES[category].en}</span>
+      <time class="num" datetime={date.toISOString()}>{fmtDate(date)}</time>
+    </div>
+    <h3>{title}</h3>
+    {description && <p class="desc">{description}</p>}
+    {activity && (
+      <p class="stats num">
+        {activity.distanceKm != null && <span>{activity.distanceKm} km</span>}
+        {activity.elevationGainM != null && <span>↑ {activity.elevationGainM} m</span>}
+        {activity.movingTime && <span>{activity.movingTime}</span>}
+      </p>
+    )}
+  </a>
+</article>
+<style>
+  .card .link { display: block; }
+  .thumb { overflow: hidden; aspect-ratio: 3 / 2; margin-bottom: 1.1rem; background: var(--bg-soft); }
+  .thumb :global(img) { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease), filter .6s; filter: saturate(.85); }
+  .link:hover .thumb :global(img) { transform: scale(1.04); filter: saturate(1); }
+  .meta { display: flex; gap: .9rem; align-items: baseline; }
+  .meta time { font-size: .74rem; color: var(--ink-faint); }
+  h3 { font-size: 1.12rem; margin: .35rem 0 .4rem; transition: color .25s; }
+  .link:hover h3 { color: var(--accent); }
+  .desc { font-size: .86rem; color: var(--ink-soft); margin: 0; line-height: 1.75; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .stats { display: flex; gap: 1rem; font-size: .76rem; color: var(--accent); margin: .6rem 0 0; }
+</style>

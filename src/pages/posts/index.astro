@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPosts } from '../../lib/content';
+const posts = await getPosts();
+const byYear = Object.entries(
+  posts.reduce<Record<string, typeof posts>>((acc, p) => ((acc[p.data.date.getFullYear()] ??= []).push(p), acc), {}),
+).sort((a, b) => Number(b[0]) - Number(a[0]));
+---
+<Base title="Journal" description="登山・ランニング・トレラン・ボルダリングの記録と雑記">
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Journal</p>
+      <h1>記事</h1>
+    </header>
+    {byYear.map(([year, list]) => (
+      <section>
+        <div class="section-head"><h2 class="num">{year}</h2><span class="eyebrow">{list.length} posts</span></div>
+        <div class="grid">{list.map((p) => <PostCard post={p} />)}</div>
+      </section>
+    ))}
+  </div>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 0; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 3rem 2rem; }
+</style>

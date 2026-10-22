@@ -1,0 +1,19 @@
+---
+import { SITE_TITLE, AUTHOR } from '../consts';
+---
+<footer>
+  <div class="container inner">
+    <p class="brand">{SITE_TITLE}</p>
+    <p class="meta">
+      <a href="/rss.xml" class="link-underline">RSS</a>
+      <span>·</span>
+      <span>© {new Date().getFullYear()} {AUTHOR}</span>
+    </p>
+  </div>
+</footer>
+<style>
+  footer { margin-top: 8rem; border-top: 1px solid var(--line); }
+  .inner { display: flex; justify-content: space-between; align-items: center; padding: 2.5rem 0 3rem; font-size: .78rem; color: var(--ink-faint); }
+  .brand { font-family: var(--serif); letter-spacing: .08em; margin: 0; }
+  .meta { display: flex; gap: .6rem; margin: 0; }
+</style>

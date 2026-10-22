@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPosts } from '../../lib/content';
+import { CATEGORIES, type CategoryKey } from '../../consts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const keys = new Set<string>(Object.keys(CATEGORIES));
+  posts.forEach((p) => p.data.tags.forEach((t) => keys.add(t.toLowerCase())));
+  return [...keys].map((tag) => ({
+    params: { tag },
+    props: {
+      tag,
+      list: posts.filter((p) => p.data.category === tag || p.data.tags.some((t) => t.toLowerCase() === tag)),
+    },
+  }));
+}
+const { tag, list } = Astro.props;
+const cat = CATEGORIES[tag as CategoryKey];
+const label = cat ? cat.label : `#${tag}`;
+---
+<Base title={label}>
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">{cat ? cat.en : 'Tag'}</p>
+      <h1>{label}</h1>
+      <p class="eyebrow">{list.length} posts</p>
+    </header>
+    <div class="grid">{list.map((p) => <PostCard post={p} />)}</div>
+    {list.length === 0 && <p class="empty">まだ記事はありません。</p>}
+  </div>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 3rem; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 .5rem; font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 3rem 2rem; }
+  .empty { color: var(--ink-faint); }
+</style>

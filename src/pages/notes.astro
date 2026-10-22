@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import { render } from 'astro:content';
+import { getNotes, fmtDate } from '../lib/content';
+const notes = await getNotes();
+const rendered = await Promise.all(notes.map(async (n) => ({ n, Content: (await render(n)).Content })));
+---
+<Base title="Notes" description="日々の短い記録">
+  <div class="measure">
+    <header class="page-head"><p class="eyebrow">Notes</p><h1>メモ</h1></header>
+    <ol class="timeline" data-pagefind-body>
+      {rendered.map(({ n, Content }) => (
+        <li id={n.id}>
+          <a href={`#${n.id}`} class="num when">{fmtDate(n.data.date)}</a>
+          <div class="prose body"><Content /></div>
+          {n.data.tags.length > 0 && <p class="tags">{n.data.tags.map((t) => <span class="chip">#{t}</span>)}</p>}
+        </li>
+      ))}
+    </ol>
+  </div>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 2rem; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+  .timeline { list-style: none; margin: 0; padding: 0 0 0 1.5rem; border-left: 1px solid var(--line); }
+  li { position: relative; padding: 0 0 2.5rem; }
+  li::before { content: ''; position: absolute; left: calc(-1.5rem - 4px); top: .7rem; width: 7px; height: 7px; border-radius: 50%; background: var(--bg); border: 1px solid var(--accent); }
+  .when { font-size: .74rem; color: var(--ink-faint); }
+  .body :global(p) { margin: .2rem 0 .6rem; }
+  .tags { display: flex; gap: .4rem; margin: 0; }
+</style>

@@ -1,0 +1,80 @@
+---
+import { Image } from 'astro:assets';
+import type { PostPhoto } from '../lib/photos';
+import { fmtDate } from '../lib/content';
+
+interface Props {
+  photos: PostPhoto[];
+  title?: string;
+}
+const { photos, title = 'Photos' } = Astro.props;
+if (!photos.length) return;
+---
+
+<section class="post-gallery" aria-label="記事の写真ギャラリー">
+  <div class="gallery-head">
+    <p class="eyebrow">Gallery</p>
+    <h2>写真の記録 <span class="num count">({photos.length})</span></h2>
+  </div>
+
+  <div class="grid">
+    {photos.map((p) => (
+      <figure id={`img-${p.file}`} class="photo-item">
+        <a href={p.img.src} target="_blank" rel="noopener" class="img-link" title="拡大表示">
+          <Image
+            src={p.img}
+            alt={p.caption || p.file}
+            widths={[400, 800, 1200]}
+            sizes="(max-width: 768px) 100vw, 50vw"
+            loading="lazy"
+          />
+        </a>
+        <figcaption>
+          <div class="caption-row">
+            <span class="caption-text">{p.caption || p.file}</span>
+            {p.distKm != null && (
+              <span class="chip is-accent num">📍 {p.distKm.toFixed(1)} km</span>
+            )}
+          </div>
+          <div class="meta-row num">
+            {p.time && <span>{fmtDate(p.time)}</span>}
+            {p.interpolated && <span class="hint">※時刻から位置推定</span>}
+          </div>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+</section>
+
+<style>
+  .post-gallery { margin: 4rem 0 2rem; padding-top: 3rem; border-top: 1px solid var(--line); }
+  .gallery-head { margin-bottom: 2rem; }
+  .gallery-head h2 { font-size: 1.4rem; margin: .2rem 0 0; }
+  .count { font-size: 1rem; color: var(--ink-faint); font-weight: normal; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem 1.5rem;
+  }
+  .photo-item { margin: 0; break-inside: avoid; display: flex; flex-direction: column; }
+  .img-link {
+    display: block; overflow: hidden; border-radius: 4px;
+    background: var(--bg-soft); aspect-ratio: 4 / 3;
+  }
+  .img-link :global(img) {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform .6s var(--ease), filter .4s;
+    filter: saturate(.9);
+  }
+  .img-link:hover :global(img) {
+    transform: scale(1.04);
+    filter: saturate(1.05);
+  }
+
+  figcaption { margin-top: .6rem; }
+  .caption-row { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+  .caption-text { font-size: .88rem; font-weight: 500; }
+  .meta-row { display: flex; gap: .6rem; font-size: .72rem; color: var(--ink-faint); margin-top: .2rem; }
+  .hint { color: var(--ink-faint); font-style: italic; }
+</style>

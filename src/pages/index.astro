@@ -1,0 +1,103 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import { getPosts, getNotes, fmtDate } from '../lib/content';
+import { CATEGORIES, SITE_TAGLINE } from '../consts';
+import hero from '../assets/photos/ridge.jpg';
+
+const posts = await getPosts();
+const notes = (await getNotes()).slice(0, 4);
+const latest = posts.slice(0, 6);
+
+// 累計（アクティビティ記事から集計）
+const totals = posts.reduce(
+  (t, p) => ({
+    km: t.km + (p.data.activity?.distanceKm ?? 0),
+    up: t.up + (p.data.activity?.elevationGainM ?? 0),
+    count: t.count + (p.data.activity ? 1 : 0),
+  }),
+  { km: 0, up: 0, count: 0 },
+);
+const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, posts.filter((p) => p.data.category === k).length]));
+---
+<Base>
+  <section class="hero">
+    <Image src={hero} alt="夜明けの稜線" class="hero-img" widths={[800, 1400, 2000]} sizes="100vw" loading="eager" />
+    <div class="hero-veil"></div>
+    <div class="container hero-text">
+      <p class="eyebrow reveal">Mountains · Running · Trail · Bouldering</p>
+      <h1 class="reveal reveal-2">山道と、チョークと、<br />日々のこと。</h1>
+      <p class="lead reveal reveal-3">{SITE_TAGLINE}</p>
+    </div>
+  </section>
+
+  <div class="container">
+    <section class="totals" aria-label="累計記録">
+      <div><span class="num big">{totals.km.toFixed(1)}</span><span class="eyebrow">km traveled</span></div>
+      <div><span class="num big">{totals.up.toLocaleString()}</span><span class="eyebrow">m climbed</span></div>
+      <div><span class="num big">{totals.count}</span><span class="eyebrow">activities</span></div>
+    </section>
+
+    <nav class="cats" aria-label="カテゴリ">
+      {Object.entries(CATEGORIES).map(([k, c]) => (
+        <a href={`/tags/${k}/`} class="cat" id={`cat-${k}`}>
+          <span class="eyebrow">{c.en}</span>
+          <span class="cat-label">{c.label}</span>
+          <span class="num cat-count">{counts[k]}</span>
+        </a>
+      ))}
+    </nav>
+
+    <div class="section-head"><h2>Journal</h2><a href="/posts/" class="link-underline">すべての記事 →</a></div>
+    <div class="post-grid">
+      {latest.map((p) => <PostCard post={p} />)}
+    </div>
+
+    <div class="section-head"><h2>Notes</h2><a href="/notes/" class="link-underline">すべてのメモ →</a></div>
+    <ul class="notes">
+      {notes.map((n) => (
+        <li><time class="num">{fmtDate(n.data.date)}</time><p>{n.body?.trim()}</p></li>
+      ))}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .hero { position: relative; height: min(82vh, 760px); min-height: 460px; overflow: hidden; margin-top: -4rem; }
+  .hero :global(.hero-img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: slowzoom 24s ease-out both; }
+  @keyframes slowzoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+  .hero-veil { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, var(--bg) 100%); }
+  .hero-text { position: absolute; left: 0; right: 0; bottom: 3.5rem; }
+  .hero h1 { font-size: clamp(2rem, 5.2vw, 3.6rem); margin: .8rem 0; font-weight: 500; letter-spacing: .1em; }
+  .hero .eyebrow { color: var(--ink-soft); }
+  .lead { color: var(--ink-soft); margin: 0; font-size: .95rem; letter-spacing: .2em; }
+
+  .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 3rem 0; border-bottom: 1px solid var(--line); }
+  .totals div { display: flex; flex-direction: column; gap: .25rem; }
+  .big { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 300; line-height: 1; letter-spacing: -.01em; }
+
+  .cats { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--line); }
+  .cat { display: flex; flex-direction: column; padding: 1.6rem 1rem 1.6rem 0; position: relative; transition: color .3s; }
+  .cat + .cat { padding-left: 1rem; border-left: 1px solid var(--line); }
+  .cat-label { font-family: var(--serif); font-size: 1.05rem; margin-top: .2rem; transition: color .3s; }
+  .cat-count { position: absolute; top: 1.6rem; right: 1rem; font-size: .75rem; color: var(--ink-faint); }
+  .cat:hover .cat-label { color: var(--accent); }
+
+  .post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem 2rem; }
+  .notes { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 3rem; }
+  .notes li { padding: 1.2rem 0; border-bottom: 1px solid var(--line); }
+  .notes time { font-size: .72rem; color: var(--ink-faint); }
+  .notes p { margin: .3rem 0 0; font-size: .92rem; }
+
+  @media (max-width: 860px) {
+    .post-grid { grid-template-columns: repeat(2, 1fr); }
+    .cats { grid-template-columns: repeat(3, 1fr); }
+    .cat:nth-child(4) { border-left: 0; padding-left: 0; }
+  }
+  @media (max-width: 560px) {
+    .post-grid, .notes { grid-template-columns: 1fr; }
+    .cats { grid-template-columns: repeat(2, 1fr); }
+    .cat { border-left: 0 !important; padding-left: 0 !important; }
+  }
+</style>

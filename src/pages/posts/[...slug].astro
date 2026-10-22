@@ -1,0 +1,73 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ActivityStats from '../../components/ActivityStats.astro';
+import ClimbLog from '../../components/ClimbLog.astro';
+import PostGallery from '../../components/PostGallery.astro';
+import { getPosts, fmtDate } from '../../lib/content';
+import { getPostPhotos } from '../../lib/photos';
+import { CATEGORIES } from '../../consts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post, i) => ({
+    params: { slug: post.id },
+    props: { post, prev: posts[i + 1], next: posts[i - 1] },
+  }));
+}
+const { post, prev, next } = Astro.props;
+const { Content, headings } = await render(post);
+const d = post.data;
+const photos = await getPostPhotos(post);
+const minutes = Math.max(1, Math.round((post.body?.length ?? 0) / 500));
+const coverImg = d.cover || (photos.length > 0 ? photos[0].img : undefined);
+---
+<Base title={d.title} description={d.description} image={d.cover?.src}>
+  <article data-pagefind-body>
+    <header class="measure head">
+      <p class="eyebrow reveal">
+        <a href={`/tags/${d.category}/`} class="link-underline">{CATEGORIES[d.category].en}</a>
+        <span> · </span><time class="num" datetime={d.date.toISOString()}>{fmtDate(d.date)}</time>
+        <span> · </span>{minutes} min read
+      </p>
+      <h1 class="reveal reveal-2">{d.title}</h1>
+      {d.description && <p class="desc reveal reveal-3">{d.description}</p>}
+    </header>
+
+    {coverImg && (
+      <div class="cover container reveal reveal-3">
+        <Image src={coverImg} alt="" widths={[800, 1400, 2000]} sizes="(max-width: 1100px) 100vw, 1100px" loading="eager" />
+      </div>
+    )}
+
+    <div class="measure">
+      {d.activity && <ActivityStats activity={d.activity} photos={photos} />}
+      {d.climbing && <ClimbLog climbing={d.climbing} />}
+      <div class="prose"><Content /></div>
+
+      <PostGallery photos={photos} />
+
+      {d.tags.length > 0 && (
+        <p class="tags">{d.tags.map((t) => <a class="chip" href={`/tags/${encodeURIComponent(t.toLowerCase())}/`}>#{t}</a>)}</p>
+      )}
+    </div>
+  </article>
+
+  <nav class="measure pager" aria-label="前後の記事">
+    {prev ? <a href={`/posts/${prev.id}/`} id="prev-post"><span class="eyebrow">← Older</span><span>{prev.data.title}</span></a> : <span />}
+    {next ? <a href={`/posts/${next.id}/`} class="r" id="next-post"><span class="eyebrow">Newer →</span><span>{next.data.title}</span></a> : <span />}
+  </nav>
+</Base>
+<style>
+  .head { padding: 5rem 0 2.5rem; }
+  h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin: .8rem 0 1rem; font-weight: 500; }
+  .desc { color: var(--ink-soft); margin: 0; }
+  .cover { margin-bottom: 1rem; }
+  .cover :global(img) { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 3rem; }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--line); }
+  .pager a { display: flex; flex-direction: column; gap: .3rem; font-family: var(--serif); transition: color .25s; }
+  .pager a:hover { color: var(--accent); }
+  .pager .r { text-align: right; }
+</style>

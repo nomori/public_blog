@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Search">
+  <link slot="head" href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+  <div class="measure">
+    <header class="page-head"><p class="eyebrow">Search</p><h1>検索</h1></header>
+    <div id="search"></div>
+    <p class="hint">※ 検索は <code>npm run build</code> 後（preview / 本番）で動作します。</p>
+  </div>
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.PagefindUI) new PagefindUI({ element: '#search', showSubResults: true, translations: { placeholder: 'キーワードで検索…' } });
+    });
+  </script>
+</Base>
+<style>
+  .page-head { padding: 5rem 0 2rem; }
+  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+  .hint { font-size: .75rem; color: var(--ink-faint); margin-top: 2rem; }
+</style>
