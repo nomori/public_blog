@@ -1,11 +1,12 @@
 ---
 import { SITE_TITLE, AUTHOR } from '../consts';
+import { url } from '../lib/content';
 ---
 <footer>
   <div class="container inner">
     <p class="brand">{SITE_TITLE}</p>
     <p class="meta">
-      <a href="/rss.xml" class="link-underline">RSS</a>
+      <a href={url('/rss.xml')} class="link-underline">RSS</a>
       <span>·</span>
       <span>© {new Date().getFullYear()} {AUTHOR}</span>
     </p>

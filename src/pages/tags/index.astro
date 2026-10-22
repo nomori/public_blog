@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { getPosts } from '../../lib/content';
+import { getPosts, url } from '../../lib/content';
 import { CATEGORIES } from '../../consts';
 const posts = await getPosts();
 const count = new Map<string, { label: string; n: number }>();
@@ -19,7 +19,7 @@ const tags = [...count.entries()].sort((a, b) => b[1].n - a[1].n);
     <header class="page-head"><p class="eyebrow">Tags</p><h1>タグ</h1></header>
     <ul>
       {tags.map(([k, v]) => (
-        <li><a href={`/tags/${encodeURIComponent(k)}/`} class="chip">#{v.label} <span class="num">{v.n}</span></a></li>
+        <li><a href={url(`/tags/${encodeURIComponent(k)}/`)} class="chip">#{v.label} <span class="num">{v.n}</span></a></li>
       ))}
     </ul>
   </div>

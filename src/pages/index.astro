@@ -2,7 +2,7 @@
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PostCard from '../components/PostCard.astro';
-import { getPosts, getNotes, fmtDate } from '../lib/content';
+import { getPosts, getNotes, fmtDate, url } from '../lib/content';
 import { CATEGORIES, SITE_TAGLINE } from '../consts';
 import hero from '../assets/photos/ridge.jpg';
 
@@ -41,7 +41,7 @@ const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, posts.f
 
     <nav class="cats" aria-label="カテゴリ">
       {Object.entries(CATEGORIES).map(([k, c]) => (
-        <a href={`/tags/${k}/`} class="cat" id={`cat-${k}`}>
+        <a href={url(`/tags/${k}/`)} class="cat" id={`cat-${k}`}>
           <span class="eyebrow">{c.en}</span>
           <span class="cat-label">{c.label}</span>
           <span class="num cat-count">{counts[k]}</span>
@@ -49,12 +49,12 @@ const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, posts.f
       ))}
     </nav>
 
-    <div class="section-head"><h2>Journal</h2><a href="/posts/" class="link-underline">すべての記事 →</a></div>
+    <div class="section-head"><h2>Journal</h2><a href={url('/posts/')} class="link-underline">すべての記事 →</a></div>
     <div class="post-grid">
       {latest.map((p) => <PostCard post={p} />)}
     </div>
 
-    <div class="section-head"><h2>Notes</h2><a href="/notes/" class="link-underline">すべてのメモ →</a></div>
+    <div class="section-head"><h2>Notes</h2><a href={url('/notes/')} class="link-underline">すべてのメモ →</a></div>
     <ul class="notes">
       {notes.map((n) => (
         <li><time class="num">{fmtDate(n.data.date)}</time><p>{n.body?.trim()}</p></li>

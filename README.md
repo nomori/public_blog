@@ -97,16 +97,16 @@ npm run draft:photos -- <slug>
    `ssh-keygen -t ed25519 -f sakura_deploy -N ""`
 2. 公開鍵をサーバへ登録  
    `ssh <アカウント>@<アカウント>.sakura.ne.jp` → `~/.ssh/authorized_keys` に `sakura_deploy.pub` を追記（`chmod 600`）
-3. GitHub リポジトリの Settings → Secrets に登録
+3. GitHub リポジトリの Settings → Secrets and variables → Actions に登録（Repository secrets）
 
-| Secret | 例 |
-|---|---|
-| `SAKURA_HOST` | `xxxx.sakura.ne.jp` |
-| `SAKURA_USER` | `xxxx` |
-| `SAKURA_SSH_KEY` | `sakura_deploy` の中身 |
-| `SAKURA_PATH`（任意） | `~/www/` |
+| Secret | 例 | 備考 |
+|---|---|---|
+| `SAKURA_HOST` | `xxxx.sakura.ne.jp` | さくらサーバのホスト名 |
+| `SAKURA_USER` | `xxxx` | SSHログインユーザー名 |
+| `SAKURA_SSH_KEY` | `sakura_deploy` の中身 | 秘密鍵ファイルの内容すべて |
+| `SAKURA_PATH` | `~/www/blog/` | **※既存コンテンツ保護のため必ず末尾スラッシュ付きで `~/www/blog/` を指定してください** |
 
-4. `astro.config.mjs` の `site` を公開ドメインに変更
-5. `main` に push → 自動デプロイ
+4. `astro.config.mjs` の `site` を公開ドメイン（例: `https://xxxx.sakura.ne.jp` または独自ドメイン）に変更（`base: '/blog'` は設定済みです）
+5. `main` に push → 自動デプロイ（`https://<ドメイン>/blog/` で公開されます）
 
 > さくらのコントロールパネルで無料SSL（Let's Encrypt）を有効にしてください。`.htaccess` で HTTPS に強制リダイレクトします。

@@ -1,17 +1,24 @@
 ---
 import Base from '../layouts/Base.astro';
+import { url } from '../lib/content';
+const pagefindBase = url('pagefind/');
 ---
 <Base title="Search">
-  <link slot="head" href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+  <link slot="head" href={`${pagefindBase}pagefind-ui.css`} rel="stylesheet" />
   <div class="measure">
     <header class="page-head"><p class="eyebrow">Search</p><h1>検索</h1></header>
     <div id="search"></div>
     <p class="hint">※ 検索は <code>npm run build</code> 後（preview / 本番）で動作します。</p>
   </div>
-  <script is:inline src="/pagefind/pagefind-ui.js"></script>
-  <script is:inline>
+  <script is:inline src={`${pagefindBase}pagefind-ui.js`}></script>
+  <script is:inline define:vars={{ pagefindBase }}>
     window.addEventListener('DOMContentLoaded', () => {
-      if (window.PagefindUI) new PagefindUI({ element: '#search', showSubResults: true, translations: { placeholder: 'キーワードで検索…' } });
+      if (window.PagefindUI) new PagefindUI({
+        element: '#search',
+        bundlePath: pagefindBase,
+        showSubResults: true,
+        translations: { placeholder: 'キーワードで検索…' }
+      });
     });
   </script>
 </Base>

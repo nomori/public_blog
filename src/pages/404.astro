@@ -1,11 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import { url } from '../lib/content';
 ---
 <Base title="404">
   <div class="measure wrap">
     <p class="eyebrow">404 — Off route</p>
     <h1>道に迷ったようです。</h1>
-    <p><a href="/" class="link-underline">登山口へ戻る →</a></p>
+    <p><a href={url('/')} class="link-underline">登山口へ戻る →</a></p>
   </div>
 </Base>
 <style>

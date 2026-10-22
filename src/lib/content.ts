@@ -19,3 +19,13 @@ export function fmtDate(d: Date) {
 export function slugifyTag(tag: string) {
   return encodeURIComponent(tag.toLowerCase());
 }
+
+/**
+ * base パス（例: /blog/）を考慮した URL を生成するヘルパー
+ */
+export function url(path = '') {
+  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '');
+  const clean = path.replace(/^\//, '');
+  if (!clean) return base ? `${base}/` : '/';
+  return `${base}/${clean}`;
+}

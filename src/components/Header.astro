@@ -1,16 +1,17 @@
 ---
 import { SITE_TITLE } from '../consts';
+import { url } from '../lib/content';
 const path = Astro.url.pathname;
 const nav = [
-  { href: '/posts/', label: 'Journal' },
-  { href: '/notes/', label: 'Notes' },
-  { href: '/photos/', label: 'Photos' },
-  { href: '/tags/', label: 'Tags' },
+  { href: url('/posts/'), label: 'Journal' },
+  { href: url('/notes/'), label: 'Notes' },
+  { href: url('/photos/'), label: 'Photos' },
+  { href: url('/tags/'), label: 'Tags' },
 ];
 ---
 <header class="site-header">
   <div class="container inner">
-    <a href="/" class="brand" id="brand-link">
+    <a href={url('/')} class="brand" id="brand-link">
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20 L9 8 L13 14 L16 10 L22 20 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
       <span>{SITE_TITLE}</span>
     </a>
@@ -18,7 +19,7 @@ const nav = [
       {nav.map((n) => (
         <a href={n.href} class:list={['nav-link', { active: path.startsWith(n.href) }]} id={`nav-${n.label.toLowerCase()}`}>{n.label}</a>
       ))}
-      <a href="/search/" class="icon-btn" aria-label="検索" id="nav-search">
+      <a href={url('/search/')} class="icon-btn" aria-label="検索" id="nav-search">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       </a>
       <button class="icon-btn" id="theme-toggle" aria-label="テーマ切替">
