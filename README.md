@@ -107,6 +107,6 @@ npm run draft:photos -- <slug>
 | `SAKURA_PATH` | `~/www/blog/` | **※既存コンテンツ保護のため必ず末尾スラッシュ付きで `~/www/blog/` を指定してください** |
 
 4. `astro.config.mjs` の `site` を公開ドメイン（例: `https://xxxx.sakura.ne.jp` または独自ドメイン）に変更（`base: '/blog'` は設定済みです）
-5. `main` に push → 自動デプロイ（`https://<ドメイン>/blog/` で公開されます）
+5. `main` または `master` に push → 自動デプロイ（`https://<ドメイン>/blog/` で公開されます）
 
 > さくらのコントロールパネルで無料SSL（Let's Encrypt）を有効にしてください。`.htaccess` で HTTPS に強制リダイレクトします。
