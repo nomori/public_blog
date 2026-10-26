@@ -13,7 +13,12 @@
     "draft:gpx": "node scripts/draft-gpx.mjs",
     "draft:photos": "node scripts/draft-photos.mjs",
     "draft:memo": "node scripts/draft-memo.mjs",
-    "compose": "node scripts/compose.mjs"
+    "compose": "node scripts/compose.mjs",
+    "book": "node scripts/new-book.mjs",
+    "import:x": "node scripts/import-tweets.mjs",
+    "init": "node scripts/init.mjs",
+    "setup": "node scripts/init.mjs",
+    "ai": "node scripts/ai.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.0",

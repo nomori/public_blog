@@ -5,31 +5,42 @@ import Base from '../../layouts/Base.astro';
 import ActivityStats from '../../components/ActivityStats.astro';
 import ClimbLog from '../../components/ClimbLog.astro';
 import PostGallery from '../../components/PostGallery.astro';
-import { getPosts, fmtDate, url } from '../../lib/content';
+import NoteCard from '../../components/NoteCard.astro';
+import { getPosts, getNotes, kindOf, dayKey, fmtDate, url } from '../../lib/content';
 import { getPostPhotos } from '../../lib/photos';
-import { CATEGORIES } from '../../consts';
+import { CATEGORIES, KINDS } from '../../consts';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
-  return posts.map((post, i) => ({
-    params: { slug: post.id },
-    props: { post, prev: posts[i + 1], next: posts[i - 1] },
-  }));
+  const notes = await getNotes();
+  return posts.map((post) => {
+    // 前後ナビは同じ種別（記録↔記録 / 記事↔記事）の中で
+    const same = posts.filter((p) => kindOf(p) === kindOf(post));
+    const i = same.indexOf(post);
+    const day = dayKey(post.data.date);
+    return {
+      params: { slug: post.id },
+      props: { post, prev: same[i + 1], next: same[i - 1], dayNotes: notes.filter((n) => dayKey(n.data.date) === day) },
+    };
+  });
 }
-const { post, prev, next } = Astro.props;
+const { post, prev, next, dayNotes } = Astro.props;
 const { Content, headings } = await render(post);
 const d = post.data;
+const kind = kindOf(post);
 const photos = await getPostPhotos(post);
 const minutes = Math.max(1, Math.round((post.body?.length ?? 0) / 500));
 const coverImg = d.cover || (photos.length > 0 ? photos[0].img : undefined);
 ---
-<Base title={d.title} description={d.description} image={d.cover?.src}>
+<Base title={d.title} description={d.description} image={d.cover?.src} section={KINDS[kind].en}>
   <article data-pagefind-body>
     <header class="measure head">
       <p class="eyebrow reveal">
+        <a href={url(kind === 'log' ? '/logs/' : '/articles/')} class="link-underline kind">{KINDS[kind].label}</a>
+        <span> · </span>
         <a href={url(`/tags/${d.category}/`)} class="link-underline">{CATEGORIES[d.category].en}</a>
         <span> · </span><time class="num" datetime={d.date.toISOString()}>{fmtDate(d.date)}</time>
-        <span> · </span>{minutes} min read
+        {kind === 'article' && <><span> · </span>{minutes} min read</>}
       </p>
       <h1 class="reveal reveal-2">{d.title}</h1>
       {d.description && <p class="desc reveal reveal-3">{d.description}</p>}
@@ -48,13 +59,20 @@ const coverImg = d.cover || (photos.length > 0 ? photos[0].img : undefined);
 
       <PostGallery photos={photos} />
 
+      {dayNotes.length > 0 && (
+        <aside class="day-notes" aria-label="この日のつぶやき">
+          <p class="eyebrow">Notes on this day</p>
+          {dayNotes.map((n) => <NoteCard note={n} />)}
+        </aside>
+      )}
+
       {d.tags.length > 0 && (
         <p class="tags">{d.tags.map((t) => <a class="chip" href={url(`/tags/${encodeURIComponent(t.toLowerCase())}/`)}>#{t}</a>)}</p>
       )}
     </div>
   </article>
 
-  <nav class="measure pager" aria-label="前後の記事">
+  <nav class="measure pager" aria-label={`前後の${KINDS[kind].label}`}>
     {prev ? <a href={url(`/posts/${prev.id}/`)} id="prev-post"><span class="eyebrow">← Older</span><span>{prev.data.title}</span></a> : <span />}
     {next ? <a href={url(`/posts/${next.id}/`)} class="r" id="next-post"><span class="eyebrow">Newer →</span><span>{next.data.title}</span></a> : <span />}
   </nav>
@@ -66,6 +84,10 @@ const coverImg = d.cover || (photos.length > 0 ? photos[0].img : undefined);
   .cover { margin-bottom: 1rem; }
   .cover :global(img) { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
   .tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 3rem; }
+  .kind { color: var(--accent); }
+  .day-notes { margin-top: 3.5rem; padding: 1.2rem 1.4rem .2rem; background: var(--bg-soft); border-radius: 6px; }
+  .day-notes .eyebrow { margin: 0; }
+  .day-notes :global(.note:last-child) { border-bottom: 0; }
   .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--line); }
   .pager a { display: flex; flex-direction: column; gap: .3rem; font-family: var(--serif); transition: color .25s; }
   .pager a:hover { color: var(--accent); }

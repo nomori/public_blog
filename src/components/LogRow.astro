@@ -1,0 +1,64 @@
+---
+// 記録（log）のコンパクトな1行表示
+import { CATEGORIES } from '../consts';
+import { jst, url, type Post } from '../lib/content';
+import { gradeValue } from '../lib/stats';
+
+interface Props { post: Post; showYear?: boolean }
+const { post, showYear = false } = Astro.props;
+const { title, date, category, activity, climbing } = post.data;
+const j = jst(date);
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const sends = climbing?.sends.filter((s) => !/トライ|project/i.test(s.status)) ?? [];
+const top = sends.reduce<string | undefined>((t, s) => (!t || gradeValue(s.grade) > gradeValue(t) ? s.grade : t), undefined);
+const place = activity?.location ?? climbing?.place;
+---
+<li class="log" data-cat={category} data-category={category}>
+  <a href={url(`/posts/${post.id}/`)} id={`log-${post.id}`}>
+    <time class="when num" datetime={date.toISOString()}>
+      {showYear && <span class="y">{j.y}</span>}
+      <span class="md">{String(j.m).padStart(2, '0')}.{String(j.d).padStart(2, '0')}</span>
+      <span class="wd">{WD[j.w]}</span>
+    </time>
+    <span class="what">
+      <span class="cat eyebrow"><i class="cat-dot" />{CATEGORIES[category].en}</span>
+      <span class="title">{title}</span>
+      {place && <span class="place">{place}</span>}
+    </span>
+    <span class="nums num">
+      {activity?.distanceKm != null && <span><b>{activity.distanceKm}</b>km</span>}
+      {activity?.elevationGainM != null && <span><b>↑{activity.elevationGainM.toLocaleString()}</b>m</span>}
+      {activity?.movingTime && <span class="t">{activity.movingTime}</span>}
+      {climbing && <span><b>{sends.length}</b>sends</span>}
+      {top && <span><b>{top}</b>top</span>}
+    </span>
+    <span class="arrow" aria-hidden="true">→</span>
+  </a>
+</li>
+
+<style>
+  .log { border-bottom: 1px solid var(--line); list-style: none; }
+  a { display: grid; grid-template-columns: 4.2rem 1fr auto 1rem; align-items: center; gap: 1.2rem; padding: 1rem .6rem 1rem .2rem; position: relative; transition: background .3s var(--ease); }
+  a::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--c); transform: scaleY(0); transition: transform .35s var(--ease); }
+  a:hover { background: color-mix(in srgb, var(--bg-soft) 70%, transparent); }
+  a:hover::before { transform: scaleY(1); }
+  .when { display: flex; flex-direction: column; line-height: 1.2; padding-left: .6rem; }
+  .y { font-size: .62rem; color: var(--ink-faint); }
+  .md { font-size: .95rem; font-weight: 500; }
+  .wd { font-size: .65rem; color: var(--ink-faint); }
+  .what { display: flex; flex-direction: column; min-width: 0; }
+  .cat { display: flex; align-items: center; gap: .45rem; font-size: .62rem; }
+  .title { font-family: var(--serif); font-size: 1rem; line-height: 1.5; transition: color .25s; }
+  a:hover .title { color: var(--accent); }
+  .place { font-size: .74rem; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nums { display: flex; gap: 1.1rem; font-size: .7rem; color: var(--ink-faint); white-space: nowrap; }
+  .nums b { color: var(--ink); font-weight: 500; font-size: .9rem; margin-right: .15rem; }
+  .nums .t { color: var(--ink-soft); font-size: .8rem; align-self: center; }
+  .arrow { color: var(--ink-faint); transition: transform .3s var(--ease), color .3s; }
+  a:hover .arrow { transform: translateX(3px); color: var(--accent); }
+  @media (max-width: 640px) {
+    a { grid-template-columns: 3.4rem 1fr; gap: .2rem 1rem; }
+    .nums { grid-column: 2; gap: .9rem; }
+    .arrow { display: none; }
+  }
+</style>

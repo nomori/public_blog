@@ -1,0 +1,69 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import BookCover from '../../components/BookCover.astro';
+import { getBooks, fmtDate, url } from '../../lib/content';
+import { BOOK_STATUS } from '../../consts';
+
+export async function getStaticPaths() {
+  const books = await getBooks();
+  return books.map((book, i) => ({ params: { slug: book.id }, props: { book, prev: books[i + 1], next: books[i - 1] } }));
+}
+const { book, prev, next } = Astro.props;
+const { Content } = await render(book);
+const d = book.data;
+const days = d.started && d.finished ? Math.max(1, Math.round((d.finished.valueOf() - d.started.valueOf()) / 86400e3) + 1) : null;
+const meta = [
+  ['著者', d.author],
+  ['出版社', d.publisher],
+  ['ページ', d.pages ? `${d.pages} p` : undefined],
+  ['読み始め', d.started ? fmtDate(d.started) : undefined],
+  ['読了', d.finished ? fmtDate(d.finished) : undefined],
+  ['読書日数', days ? `${days} 日` : undefined],
+  ['ISBN', d.isbn],
+].filter(([, v]) => v);
+---
+<Base title={`${d.title} — 読書ログ`} description={`${d.author}『${d.title}』の読書メモ`} image={d.cover?.src} section="Books">
+  <article class="container book" data-pagefind-body>
+    <div class="cover-col reveal"><BookCover book={book} size="lg" eager /></div>
+    <div class="body-col">
+      <p class="eyebrow reveal"><a href={url('/books/')} class="link-underline">Books</a> · <span class={`st ${d.status}`}>{BOOK_STATUS[d.status].label}</span></p>
+      <h1 class="reveal reveal-2">{d.title}</h1>
+      <p class="au reveal reveal-2">{d.author}</p>
+      {d.rating != null && <p class="stars" aria-label={`評価 ${d.rating} / 5`}>{'★'.repeat(Math.round(d.rating))}<span>{'★'.repeat(5 - Math.round(d.rating))}</span></p>}
+      {d.quote && <blockquote class="quote">{d.quote}</blockquote>}
+      <div class="prose"><Content /></div>
+      <dl class="meta">
+        {meta.map(([k, v]) => <div><dt class="eyebrow">{k}</dt><dd class="num">{v}</dd></div>)}
+      </dl>
+      {d.tags.length > 0 && <p class="tags">{d.tags.map((t) => <span class="chip">#{t}</span>)}</p>}
+    </div>
+  </article>
+  <nav class="container pager" aria-label="前後の本">
+    {prev ? <a href={url(`/books/${prev.id}/`)}><span class="eyebrow">← Older</span><span>{prev.data.title}</span></a> : <span />}
+    {next ? <a href={url(`/books/${next.id}/`)} class="r"><span class="eyebrow">Newer →</span><span>{next.data.title}</span></a> : <span />}
+  </nav>
+</Base>
+<style>
+  .book { display: grid; grid-template-columns: 15rem 1fr; gap: 4rem; padding-top: 5rem; align-items: start; }
+  .cover-col { position: sticky; top: 6rem; }
+  h1 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); margin: .6rem 0 .3rem; font-weight: 500; }
+  .au { margin: 0; color: var(--ink-soft); }
+  .st.reading { color: var(--accent); }
+  .stars { color: var(--c-trail); letter-spacing: .15em; margin: 1rem 0 0; }
+  .stars span { color: var(--line); }
+  .quote { margin: 2rem 0; padding: 1.4rem 1.6rem; background: var(--bg-soft); border-radius: 6px; font-family: var(--serif); font-size: 1.05rem; line-height: 2; position: relative; }
+  .quote::before { content: '“'; position: absolute; top: -.6rem; left: .8rem; font-size: 3rem; color: var(--accent); font-family: var(--serif); line-height: 1; }
+  .prose { margin-top: 2rem; max-width: var(--measure); }
+  .meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem 2rem; margin: 3rem 0 0; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+  .meta dd { margin: .15rem 0 0; font-size: .88rem; }
+  .tags { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: 2rem; }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--line); }
+  .pager a { display: flex; flex-direction: column; gap: .3rem; font-family: var(--serif); transition: color .25s; }
+  .pager a:hover { color: var(--accent); }
+  .pager .r { text-align: right; }
+  @media (max-width: 760px) {
+    .book { grid-template-columns: 1fr; gap: 2rem; }
+    .cover-col { position: static; width: 10rem; }
+  }
+</style>

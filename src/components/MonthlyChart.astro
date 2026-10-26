@@ -1,0 +1,57 @@
+---
+// 月別の距離・獲得標高の棒グラフ（直近12ヶ月）
+import { url, type Post } from '../lib/content';
+import { monthlySeries } from '../lib/stats';
+
+interface Props { posts: Post[]; months?: number; activeKeys?: string[] }
+const { posts, months = 12, activeKeys = [] } = Astro.props;
+const series = monthlySeries(posts, months);
+const maxKm = Math.max(1, ...series.map((s) => s.km));
+const maxUp = Math.max(1, ...series.map((s) => s.up));
+const charts = [
+  { key: 'km', label: 'Distance', unit: 'km', max: maxKm, val: (s: (typeof series)[number]) => s.km, fmt: (v: number) => v.toFixed(1) },
+  { key: 'up', label: 'Elevation', unit: 'm', max: maxUp, val: (s: (typeof series)[number]) => s.up, fmt: (v: number) => v.toLocaleString() },
+];
+---
+<div class="charts">
+  {charts.map((c) => (
+    <figure class="chart">
+      <figcaption class="eyebrow">{c.label} <span>/ month</span></figcaption>
+      <ol class="bars">
+        {series.map((s, i) => {
+          const v = c.val(s);
+          const has = activeKeys.includes(s.key);
+          const inner = (
+            <>
+              <span class="tip num">{c.fmt(v)}{c.unit}</span>
+              <span class="bar" />
+              <span class="lbl num">{s.m === 1 ? `${String(s.y).slice(2)}/1` : s.m}</span>
+            </>
+          );
+          const style = `--v:${v / c.max};--i:${i}`;
+          return <li class:list={[{ zero: !v, now: i === series.length - 1 }]}>{has ? <a style={style} href={url(`/stats/${s.y}/${String(s.m).padStart(2, '0')}/`)} aria-label={`${s.y}年${s.m}月 ${c.fmt(v)}${c.unit}`}>{inner}</a> : <span class="w" style={style}>{inner}</span>}</li>;
+        })}
+      </ol>
+    </figure>
+  ))}
+</div>
+
+<style>
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+  .chart { margin: 0; }
+  figcaption span { text-transform: none; letter-spacing: .05em; }
+  .bars { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 160px; }
+  .bars li { display: flex; }
+  .bars a, .bars .w { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+  .bar { width: 100%; height: calc(var(--v) * 130px); min-height: 2px; background: color-mix(in srgb, var(--accent) 45%, var(--bg-soft)); border-radius: 2px 2px 0 0;
+    transform-origin: bottom; animation: rise .9s var(--ease) both; animation-delay: calc(var(--i) * 30ms); transition: background .25s; }
+  .now .bar { background: var(--accent); }
+  .zero .bar { background: var(--line); }
+  @keyframes rise { from { transform: scaleY(0); } }
+  .lbl { font-size: .62rem; color: var(--ink-faint); margin-top: .35rem; height: 1rem; }
+  .tip { position: absolute; bottom: calc(var(--v, 0) * 130px + 1.9rem); font-size: .62rem; color: var(--ink); white-space: nowrap; opacity: 0; transform: translateY(4px); transition: all .2s var(--ease); pointer-events: none; }
+  .bars li:hover .tip { opacity: 1; transform: none; }
+  .bars li:hover .bar { background: var(--accent); }
+  .bars a { cursor: pointer; }
+  @media (max-width: 720px) { .charts { grid-template-columns: 1fr; } }
+</style>

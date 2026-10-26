@@ -1,0 +1,47 @@
+---
+// 年間目標の進捗バー（年の経過率マーカー付き）
+import { CATEGORIES } from '../consts';
+import type { Book, Post } from '../lib/content';
+import { goalProgress, nowJst, unitOf } from '../lib/stats';
+
+interface Props { posts: Post[]; books: Book[]; year?: number }
+const { posts, books, year = nowJst().y } = Astro.props;
+const goals = goalProgress(year, posts, books);
+const fmt = (v: number, metric: string) => (metric === 'km' ? v.toFixed(1) : v.toLocaleString());
+---
+{goals.length > 0 && (
+  <section class="goals" aria-label={`${year}年の目標`}>
+    <p class="eyebrow">{year} Goals</p>
+    <ul>
+      {goals.map((g) => (
+        <li data-cat={g.category ?? undefined}>
+          <div class="row">
+            <span class="label">{g.label}{g.category && <small>（{CATEGORIES[g.category].label}）</small>}</span>
+            <span class="num val"><b>{fmt(g.value, g.metric)}</b> / {g.target.toLocaleString()} {unitOf(g.metric)}</span>
+          </div>
+          <div class="track" title={`達成率 ${g.pct}%（年の経過 ${Math.round(g.elapsed * 100)}%）`}>
+            <span class:list={['fill', { behind: !g.onTrack }]} style={`--r:${g.ratio}`} />
+            <i class="pace" style={`left:${g.elapsed * 100}%`} />
+          </div>
+          <div class="row foot num"><span>{g.pct}%</span><span class:list={[{ ok: g.onTrack }]}>{g.onTrack ? 'On track' : `ペース差 ${Math.round((g.elapsed - g.ratio) * 100)}pt`}</span></div>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .goals ul { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: 1.15rem; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+  .label { font-size: .88rem; }
+  .label small { color: var(--ink-faint); font-size: .72rem; }
+  .val { font-size: .78rem; color: var(--ink-faint); }
+  .val b { color: var(--ink); font-weight: 500; font-size: .9rem; }
+  .track { position: relative; height: 5px; background: var(--bg-soft); border-radius: 99px; margin: .45rem 0 .3rem; }
+  .fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--r) * 100%); background: var(--accent); border-radius: inherit; transform-origin: left; animation: grow 1.2s var(--ease) both; }
+  .fill.behind { background: color-mix(in srgb, var(--accent) 55%, var(--ink-faint)); }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .pace { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-soft); }
+  .foot { font-size: .66rem; color: var(--ink-faint); }
+  .foot .ok { color: var(--accent); }
+</style>

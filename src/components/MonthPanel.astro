@@ -1,0 +1,83 @@
+---
+// 当月（または指定月）のサマリ＋前月比＋カテゴリ内訳
+import { CATEGORIES, type CategoryKey } from '../consts';
+import { url, type Post } from '../lib/content';
+import { delta, fmtMinutes, inMonth, nowJst, shiftMonth, summarize } from '../lib/stats';
+
+interface Props { posts: Post[]; y?: number; m?: number; showLink?: boolean; heading?: 'h2' | 'h3' }
+const now = nowJst();
+const { posts, y = now.y, m = now.m, showLink = true } = Astro.props;
+const prevYm = shiftMonth(y, m, -1);
+const cur = summarize(inMonth(posts, y, m));
+const prev = summarize(inMonth(posts, prevYm.y, prevYm.m));
+const isCurrent = y === now.y && m === now.m;
+
+const kpis = [
+  { label: 'Distance', value: cur.km.toFixed(1), unit: 'km', d: delta(cur.km, prev.km), prev: `${prev.km.toFixed(1)} km` },
+  { label: 'Elevation', value: cur.up.toLocaleString(), unit: 'm', d: delta(cur.up, prev.up), prev: `${prev.up.toLocaleString()} m` },
+  { label: 'Activities', value: String(cur.count), unit: '', d: delta(cur.count, prev.count), prev: `${prev.count} 回` },
+  { label: 'Moving', value: cur.minutes ? fmtMinutes(cur.minutes) : '0m', unit: '', d: delta(cur.minutes, prev.minutes), prev: fmtMinutes(prev.minutes) },
+];
+const cats = (Object.keys(CATEGORIES) as CategoryKey[]).filter((k) => cur.byCat[k] > 0);
+const reportHref = url(`/stats/${y}/${String(m).padStart(2, '0')}/`);
+const badge = (d: number | null) => (d === null ? ['new', 'NEW'] : d > 0 ? ['up', `▲ ${d}%`] : d < 0 ? ['down', `▼ ${Math.abs(d)}%`] : ['flat', '±0']);
+---
+<section class="month" aria-label={`${y}年${m}月のサマリ`}>
+  <header>
+    <div>
+      <p class="eyebrow">{isCurrent ? 'This Month' : 'Month'}</p>
+      <p class="ym num">{y}<span>.</span>{String(m).padStart(2, '0')}</p>
+    </div>
+    {showLink && <a href={reportHref} class="link-underline more" id={`month-report-${y}-${m}`}>月次レポート →</a>}
+  </header>
+
+  <dl class="kpis">
+    {kpis.map((k) => {
+      const [cls, txt] = badge(k.d);
+      return (
+        <div>
+          <dt class="eyebrow">{k.label}</dt>
+          <dd>
+            <span class="num v">{k.value}<small>{k.unit}</small></span>
+            <span class={`delta ${cls}`} title={`先月 ${k.prev}`}>{txt}</span>
+          </dd>
+          <dd class="prev num">先月 {k.prev}</dd>
+        </div>
+      );
+    })}
+  </dl>
+
+  {cur.count > 0 ? (
+    <div class="mix">
+      <div class="bar" role="img" aria-label="カテゴリ内訳">
+        {cats.map((k) => <span data-cat={k} style={`flex:${cur.byCat[k]}`} title={`${CATEGORIES[k].label} ${cur.byCat[k]}回`} />)}
+      </div>
+      <ul class="legend">
+        {cats.map((k) => <li data-cat={k}><i class="cat-dot" />{CATEGORIES[k].label}<span class="num">{cur.byCat[k]}</span></li>)}
+      </ul>
+    </div>
+  ) : (
+    <p class="empty">{isCurrent ? 'まだ今月の記録はありません。そろそろ山へ。' : 'この月の記録はありません。'}</p>
+  )}
+</section>
+
+<style>
+  .month { display: flex; flex-direction: column; gap: 1.4rem; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; }
+  .ym { font-size: 2.1rem; font-weight: 300; line-height: 1; margin: .35rem 0 0; letter-spacing: .02em; }
+  .ym span { color: var(--accent); }
+  .more { font-size: .8rem; color: var(--ink-soft); }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem 1.5rem; margin: 0; }
+  .kpis div { border-top: 1px solid var(--line); padding-top: .8rem; }
+  dd { margin: .25rem 0 0; display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+  .v { font-size: 1.55rem; font-weight: 300; line-height: 1.1; }
+  .v small { font-size: .72rem; color: var(--ink-faint); margin-left: .2rem; }
+  .prev { font-size: .7rem; color: var(--ink-faint); margin-top: .15rem; }
+  .bar { display: flex; height: 6px; border-radius: 99px; overflow: hidden; gap: 2px; background: var(--bg-soft); }
+  .bar span { background: var(--c); transform-origin: left; animation: grow .9s var(--ease) both; }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .legend { list-style: none; padding: 0; margin: .7rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; font-size: .78rem; color: var(--ink-soft); }
+  .legend li { display: flex; align-items: center; gap: .4rem; }
+  .legend .num { color: var(--ink-faint); font-size: .72rem; }
+  .empty { margin: 0; font-size: .85rem; color: var(--ink-faint); }
+</style>

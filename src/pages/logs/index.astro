@@ -1,0 +1,80 @@
+---
+import Base from '../../layouts/Base.astro';
+import LogRow from '../../components/LogRow.astro';
+import { getLogs, monthKey, url } from '../../lib/content';
+import { fmtMinutes, summarize } from '../../lib/stats';
+import { CATEGORIES, type CategoryKey } from '../../consts';
+
+const logs = await getLogs();
+const byMonth = Object.entries(
+  logs.reduce<Record<string, typeof logs>>((acc, p) => ((acc[monthKey(p.data.date)] ??= []).push(p), acc), {}),
+).sort((a, b) => b[0].localeCompare(a[0]));
+const cats = (Object.keys(CATEGORIES) as CategoryKey[]).filter((k) => logs.some((p) => p.data.category === k));
+const all = summarize(logs);
+---
+<Base title="Logs" description="登山・ランニング・トレラン・ボルダリングの活動記録" section="Logs">
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Logs</p>
+      <h1>記録</h1>
+      <p class="lede num">{all.count} activities · {all.km.toFixed(1)} km · ↑{all.up.toLocaleString()} m · {fmtMinutes(all.minutes)}</p>
+    </header>
+
+    <div class="filters" role="group" aria-label="カテゴリで絞り込み">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true" id="filter-all">All</button>
+      {cats.map((k) => (
+        <button type="button" class="chip" data-filter={k} data-cat={k} aria-pressed="false" id={`filter-${k}`}><i class="cat-dot" /> {CATEGORIES[k].label}</button>
+      ))}
+    </div>
+
+    {byMonth.map(([key, list]) => {
+      const [y, m] = key.split('-');
+      const s = summarize(list);
+      return (
+        <section class="month" data-month>
+          <div class="mhead">
+            <a href={url(`/stats/${y}/${m}/`)} class="ym num" title="月次レポートへ">{y}<span>.</span>{m}</a>
+            <span class="msum num">{s.count} act · {s.km.toFixed(1)} km · ↑{s.up.toLocaleString()} m</span>
+          </div>
+          <ul class="rows">{list.map((p) => <LogRow post={p} />)}</ul>
+        </section>
+      );
+    })}
+    <p class="empty" hidden>該当する記録がありません。</p>
+  </div>
+</Base>
+
+<script>
+  const btns = document.querySelectorAll<HTMLButtonElement>('[data-filter]');
+  btns.forEach((b) =>
+    b.addEventListener('click', () => {
+      const f = b.dataset.filter!;
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      let any = false;
+      document.querySelectorAll<HTMLElement>('[data-month]').forEach((sec) => {
+        let shown = 0;
+        sec.querySelectorAll<HTMLElement>('[data-category]').forEach((li) => {
+          const ok = f === 'all' || li.dataset.category === f;
+          li.hidden = !ok;
+          if (ok) shown++;
+        });
+        sec.hidden = shown === 0;
+        any ||= shown > 0;
+      });
+      (document.querySelector('.empty') as HTMLElement).hidden = any;
+    }),
+  );
+</script>
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 2rem 0 1rem; }
+  .filters .chip { display: inline-flex; align-items: center; gap: .4rem; }
+  .month { margin-top: 3rem; }
+  .mhead { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: .6rem; border-bottom: 1px solid var(--ink); }
+  .ym { font-size: 1.4rem; font-weight: 300; transition: color .25s; }
+  .ym span { color: var(--accent); }
+  .ym:hover { color: var(--accent); }
+  .msum { font-size: .74rem; color: var(--ink-faint); }
+  .rows { padding: 0; margin: 0; }
+  .empty { color: var(--ink-faint); margin-top: 2rem; }
+</style>

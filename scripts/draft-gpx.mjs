@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
+import { filterPrivacyPoints } from './lib/privacy.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const DRAFTS_DIR = path.join(ROOT, 'drafts');
@@ -50,15 +51,18 @@ const raw = [];
 for (const trk of g.trk ?? []) for (const seg of trk.trkseg ?? []) for (const p of seg.trkpt ?? []) raw.push(p);
 if (!raw.length) for (const r of g.rte ?? []) for (const p of r.rtept ?? []) raw.push(p);
 
-const pts = raw.map((p) => ({
+let rawPts = raw.map((p) => ({
   lat: +p.lat,
   lon: +p.lon,
   ele: p.ele != null ? +p.ele : null,
   t: p.time ? new Date(p.time) : null,
 })).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
 
+// プライバシーゾーン（自宅・指定地点周辺）の除外
+const pts = filterPrivacyPoints(rawPts, ROOT);
+
 if (pts.length < 2) {
-  console.error('トラックポイントが見つかりません');
+  console.error('プライバシー除外後のトラックポイントが2点未満です。');
   process.exit(1);
 }
 

@@ -1,0 +1,29 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getArticles, jst, url } from '../../lib/content';
+const posts = await getArticles();
+const byYear = Object.entries(
+  posts.reduce<Record<string, typeof posts>>((acc, p) => ((acc[jst(p.data.date).y] ??= []).push(p), acc), {}),
+).sort((a, b) => Number(b[0]) - Number(a[0]));
+---
+<Base title="Articles" description="山行の振り返り、装備、考察、日々の雑記などの読み物" section="Articles">
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Articles</p>
+      <h1>記事</h1>
+      <p class="lede">振り返り・装備・考察・雑記。数字の記録は <a href={url('/logs/')} class="link-underline">Logs</a> へ。</p>
+    </header>
+    {byYear.map(([year, list]) => (
+      <section>
+        <div class="section-head"><h2 class="num">{year}</h2><span class="eyebrow">{list.length} articles</span></div>
+        <div class="grid">{list.map((p) => <PostCard post={p} />)}</div>
+      </section>
+    ))}
+    {posts.length === 0 && <p class="empty">まだ記事はありません。</p>}
+  </div>
+</Base>
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 3rem 2rem; }
+  .empty { color: var(--ink-faint); margin-top: 3rem; }
+</style>

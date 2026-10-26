@@ -1,0 +1,120 @@
+---
+// 月次レポート（その月の記録・記事・読了本・つぶやきを1ページに）
+import Base from '../../../layouts/Base.astro';
+import MonthPanel from '../../../components/MonthPanel.astro';
+import LogRow from '../../../components/LogRow.astro';
+import PostCard from '../../../components/PostCard.astro';
+import NoteCard from '../../../components/NoteCard.astro';
+import BookCover from '../../../components/BookCover.astro';
+import RoutesMap from '../../../components/RoutesMap.astro';
+import { getPosts, getNotes, getBooks, kindOf, monthKey, url } from '../../../lib/content';
+import { activeMonths, inMonth, mk, nowJst, shiftMonth } from '../../../lib/stats';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const notes = await getNotes();
+  const books = await getBooks();
+  const finished = books.filter((b) => b.data.finished).map((b) => ({ data: { date: b.data.finished! } }));
+  const now = nowJst();
+  const keys = new Set([...activeMonths(posts, notes, finished), mk(now.y, now.m)]);
+  const sorted = [...keys].sort();
+  return sorted.map((k, i) => {
+    const [year, month] = k.split('-');
+    return { params: { year, month }, props: { prevKey: sorted[i - 1], nextKey: sorted[i + 1] } };
+  });
+}
+
+const { year, month } = Astro.params;
+const { prevKey, nextKey } = Astro.props;
+const y = Number(year), m = Number(month);
+const posts = await getPosts();
+const monthPosts = inMonth(posts, y, m);
+const logs = monthPosts.filter((p) => kindOf(p) === 'log');
+const articles = monthPosts.filter((p) => kindOf(p) === 'article');
+const notes = inMonth(await getNotes(), y, m);
+const books = (await getBooks()).filter((b) => b.data.finished && monthKey(b.data.finished) === mk(y, m));
+const hasRoutes = logs.some((p) => p.data.activity?.route);
+const link = (k?: string) => (k ? url(`/stats/${k.replace('-', '/')}/`) : undefined);
+// 直前の月（データ有無に関わらず）との比較は MonthPanel 内で実施
+const prevCal = shiftMonth(y, m, -1);
+---
+<Base title={`${y}年${m}月の月次レポート`} description={`${y}年${m}月の活動記録・記事・読書・つぶやきのまとめ`} section="Stats">
+  <div class="container">
+    <header class="page-head head">
+      <div>
+        <p class="eyebrow"><a href={url('/stats/')} class="link-underline">Stats</a> · Monthly Report</p>
+        <h1 class="num">{y}<span>.</span>{month}</h1>
+        <p class="lede">{logs.length} 記録 · {articles.length} 記事 · {books.length} 冊読了 · {notes.length} つぶやき</p>
+      </div>
+      <nav class="mnav" aria-label="前後の月">
+        {prevKey ? <a href={link(prevKey)} id="prev-month">← {prevKey.replace('-', '.')}</a> : <span />}
+        {nextKey ? <a href={link(nextKey)} id="next-month">{nextKey.replace('-', '.')} →</a> : <span />}
+      </nav>
+    </header>
+
+    <section class="panel">
+      <MonthPanel posts={posts} y={y} m={m} showLink={false} />
+      <p class="cmp eyebrow">vs {prevCal.y}.{String(prevCal.m).padStart(2, '0')}</p>
+    </section>
+
+    {hasRoutes && (
+      <>
+        <div class="section-head"><h2>Routes</h2><span class="eyebrow">この月の足跡</span></div>
+        <RoutesMap posts={logs} id="month-routes-map" height="400px" />
+      </>
+    )}
+
+    {logs.length > 0 && (
+      <>
+        <div class="section-head"><h2>Logs <small>記録</small></h2><span class="eyebrow">{logs.length}</span></div>
+        <ul class="rows">{logs.map((p) => <LogRow post={p} />)}</ul>
+      </>
+    )}
+
+    {articles.length > 0 && (
+      <>
+        <div class="section-head"><h2>Articles <small>記事</small></h2><span class="eyebrow">{articles.length}</span></div>
+        <div class="cards">{articles.map((p) => <PostCard post={p} />)}</div>
+      </>
+    )}
+
+    <div class="duo">
+      {books.length > 0 && (
+        <section>
+          <div class="section-head"><h2>Books <small>読了</small></h2><span class="eyebrow">{books.length}</span></div>
+          <ul class="shelf">
+            {books.map((b) => (
+              <li><a href={url(`/books/${b.id}/`)}><BookCover book={b} size="sm" /><span>{b.data.title}</span></a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {notes.length > 0 && (
+        <section>
+          <div class="section-head"><h2>Notes <small>つぶやき</small></h2><span class="eyebrow">{notes.length}</span></div>
+          {notes.slice(0, 6).map((n) => <NoteCard note={n} compact />)}
+          {notes.length > 6 && <a href={url('/notes/')} class="link-underline more">ほか {notes.length - 6} 件 →</a>}
+        </section>
+      )}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; }
+  .head h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1; margin-top: .5rem; }
+  .head h1 span { color: var(--accent); }
+  .mnav { display: flex; gap: 1.5rem; font-size: .8rem; }
+  .mnav a { color: var(--ink-soft); transition: color .25s; }
+  .mnav a:hover { color: var(--accent); }
+  .panel { margin-top: 2.5rem; padding: 2rem; background: var(--bg-soft); border-radius: 8px; position: relative; }
+  .panel :global(.ym) { display: none; }
+  .cmp { position: absolute; top: 2rem; right: 2rem; margin: 0; }
+  .section-head h2 small { font-family: var(--sans); font-size: .72rem; font-weight: 400; color: var(--ink-faint); letter-spacing: .1em; margin-left: .5rem; }
+  .rows { padding: 0; margin: 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 3rem 2rem; }
+  .duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 0 4rem; }
+  .shelf { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); gap: 1.4rem 1rem; }
+  .shelf a { display: flex; flex-direction: column; gap: .5rem; font-family: var(--serif); font-size: .78rem; line-height: 1.45; }
+  .more { display: inline-block; margin-top: 1rem; font-size: .8rem; color: var(--ink-soft); }
+</style>

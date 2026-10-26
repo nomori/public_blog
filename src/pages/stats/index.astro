@@ -1,0 +1,141 @@
+---
+import Base from '../../layouts/Base.astro';
+import MonthPanel from '../../components/MonthPanel.astro';
+import MonthlyChart from '../../components/MonthlyChart.astro';
+import Heatmap from '../../components/Heatmap.astro';
+import GoalBars from '../../components/GoalBars.astro';
+import RoutesMap from '../../components/RoutesMap.astro';
+import { getPosts, getNotes, getBooks, jst, fmtDate, url } from '../../lib/content';
+import { activeMonths, fmtMinutes, gradePyramid, nowJst, personalRecords, summarize } from '../../lib/stats';
+import { CATEGORIES } from '../../consts';
+
+const posts = await getPosts();
+const notes = await getNotes();
+const books = await getBooks();
+const now = nowJst();
+const yearSum = summarize(posts.filter((p) => jst(p.data.date).y === now.y));
+const allSum = summarize(posts);
+const records = personalRecords(posts);
+const pyramid = gradePyramid(posts);
+const maxSent = Math.max(1, ...pyramid.map((g) => g.sent));
+const months = activeMonths(posts, notes, books.filter((b) => b.data.finished).map((b) => ({ data: { date: b.data.finished } })));
+const monthsByYear = Object.entries(
+  months.reduce<Record<string, string[]>>((acc, k) => ((acc[k.slice(0, 4)] ??= []).push(k), acc), {}),
+).sort((a, b) => b[0].localeCompare(a[0]));
+---
+<Base title="Stats" description="月別・年間のアクティビティ統計、自己ベスト、足跡マップ" section="Stats">
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Stats</p>
+      <h1>統計</h1>
+    </header>
+
+    <section class="year" aria-label={`${now.y}年の累計`}>
+      <p class="eyebrow">{now.y} Year to date</p>
+      <dl>
+        <div><dt class="eyebrow">Distance</dt><dd class="num">{yearSum.km.toFixed(1)}<small>km</small></dd></div>
+        <div><dt class="eyebrow">Elevation</dt><dd class="num">{yearSum.up.toLocaleString()}<small>m</small></dd></div>
+        <div><dt class="eyebrow">Activities</dt><dd class="num">{yearSum.count}</dd></div>
+        <div><dt class="eyebrow">Active days</dt><dd class="num">{yearSum.days}</dd></div>
+        <div><dt class="eyebrow">Moving</dt><dd class="num">{fmtMinutes(yearSum.minutes)}</dd></div>
+      </dl>
+      <p class="all num">All time — {allSum.km.toFixed(1)} km · ↑{allSum.up.toLocaleString()} m · {allSum.count} activities</p>
+    </section>
+
+    <section class="grid2">
+      <div class="cell"><MonthPanel posts={posts} /></div>
+      <div class="cell"><GoalBars posts={posts} books={books} /></div>
+    </section>
+
+    <div class="section-head"><h2>Monthly</h2><span class="eyebrow">Last 12 months</span></div>
+    <MonthlyChart posts={posts} activeKeys={months} />
+
+    <div class="section-head"><h2>Activity</h2></div>
+    <Heatmap posts={posts} />
+
+    <section class="grid2 records">
+      <div>
+        <div class="section-head"><h2>Personal Records <small>自己ベスト</small></h2></div>
+        <ul class="prs">
+          {records.map((r) => (
+            <li>
+              <span class="eyebrow">{r.label}</span>
+              <span class="num v">{r.value}</span>
+              <a href={url(`/posts/${r.post.id}/`)} class="link-underline src" data-cat={r.post.data.category}><i class="cat-dot" /> {r.post.data.title} <time class="num">{fmtDate(r.post.data.date)}</time></a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <div class="section-head"><h2>Grade Pyramid <small>ボルダー</small></h2></div>
+        {pyramid.length ? (
+          <ul class="pyr" data-cat="boulder">
+            {pyramid.map((g) => (
+              <li>
+                <span class="g num">{g.grade}</span>
+                <span class="track"><span class="b" style={`--w:${g.sent / maxSent}`}><span class="f" style={`--fw:${g.flash / g.sent}`} /></span></span>
+                <span class="n num">{g.sent}{g.flash > 0 && <small> ({g.flash} flash)</small>}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p class="muted">完登記録はまだありません。</p>}
+      </div>
+    </section>
+
+    <div class="section-head"><h2>Footprints <small>足跡マップ</small></h2><span class="eyebrow">All routes</span></div>
+    <RoutesMap posts={posts} height="520px" />
+
+    <div class="section-head"><h2>Monthly Reports <small>月次レポート</small></h2></div>
+    {monthsByYear.map(([y, list]) => (
+      <div class="mr">
+        <span class="num y">{y}</span>
+        <ol>
+          {Array.from({ length: 12 }, (_, i) => {
+            const key = `${y}-${String(i + 1).padStart(2, '0')}`;
+            return <li>{list.includes(key) ? <a href={url(`/stats/${y}/${key.slice(5)}/`)} class="num on">{i + 1}</a> : <span class="num">{i + 1}</span>}</li>;
+          })}
+        </ol>
+      </div>
+    ))}
+  </div>
+</Base>
+
+<style>
+  .section-head h2 small { font-family: var(--sans); font-size: .72rem; font-weight: 400; color: var(--ink-faint); letter-spacing: .1em; margin-left: .5rem; }
+  .year { padding: 2rem 0 2.5rem; border-bottom: 1px solid var(--line); }
+  .year dl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin: 1rem 0 0; }
+  .year dd { margin: .2rem 0 0; font-size: clamp(1.5rem, 3.4vw, 2.4rem); font-weight: 300; line-height: 1.1; }
+  .year small { font-size: .75rem; color: var(--ink-faint); margin-left: .2rem; }
+  .all { margin: 1.2rem 0 0; font-size: .76rem; color: var(--ink-faint); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+  .grid2 > .cell { padding-top: 2.5rem; }
+  .prs { list-style: none; padding: 0; margin: 0; }
+  .prs li { display: grid; grid-template-columns: 1fr auto; gap: .1rem 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
+  .prs .v { font-size: 1.3rem; font-weight: 300; text-align: right; grid-row: span 2; align-self: center; }
+  .prs .src { font-size: .78rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: .4rem; justify-self: start; }
+  .prs time { color: var(--ink-faint); font-size: .7rem; }
+  .pyr { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+  .pyr li { display: grid; grid-template-columns: 3rem 1fr 6rem; align-items: center; gap: .8rem; }
+  .g { font-size: .82rem; text-align: right; }
+  .track { display: flex; justify-content: center; }
+  .b { display: block; height: 18px; width: calc(var(--w) * 100%); min-width: 6px; background: color-mix(in srgb, var(--c) 45%, transparent); border-radius: 3px; position: relative; overflow: hidden; animation: grow 1s var(--ease) both; }
+  .f { position: absolute; inset: 0 auto 0 0; width: calc(var(--fw) * 100%); background: var(--c); }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .n { font-size: .78rem; color: var(--ink-soft); }
+  .n small { color: var(--ink-faint); font-size: .66rem; }
+  .muted { color: var(--ink-faint); font-size: .85rem; }
+  .mr { display: flex; align-items: center; gap: 1.5rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
+  .mr .y { font-size: 1rem; width: 3rem; }
+  .mr ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(12, 1fr); gap: .4rem; flex: 1; }
+  .mr li > * { display: grid; place-items: center; height: 2.2rem; border-radius: 4px; font-size: .8rem; color: var(--ink-faint); opacity: .5; }
+  .mr a.on { opacity: 1; color: var(--ink); background: var(--bg-soft); transition: background .25s, color .25s; }
+  .mr a.on:hover { background: var(--accent); color: var(--bg); }
+  @media (max-width: 860px) {
+    .grid2 { grid-template-columns: 1fr; gap: 0; }
+    .year dl { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .year dl { grid-template-columns: repeat(2, 1fr); }
+    .mr ol { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>

@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
+import { filterPrivacyPoints } from './lib/privacy.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const POSTS_DIR = path.join(ROOT, 'src/content/posts');
@@ -59,12 +60,13 @@ function parseGpx(file) {
   const raw = [];
   for (const trk of g.trk ?? []) for (const seg of trk.trkseg ?? []) for (const p of seg.trkpt ?? []) raw.push(p);
   if (!raw.length) for (const r of g.rte ?? []) for (const p of r.rtept ?? []) raw.push(p);
-  const pts = raw.map((p) => ({
+  const rawPts = raw.map((p) => ({
     lat: +p.lat, lon: +p.lon,
     ele: p.ele != null ? +p.ele : null,
     t: p.time ? new Date(p.time) : null,
   })).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-  if (pts.length < 2) throw new Error('トラックポイントが見つかりません: ' + file);
+  const pts = filterPrivacyPoints(rawPts, ROOT);
+  if (pts.length < 2) throw new Error('プライバシー除外後のトラックポイントが2点未満です: ' + file);
   return { name: typeof name === 'string' ? name : undefined, pts };
 }
 

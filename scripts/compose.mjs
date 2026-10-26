@@ -14,6 +14,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const DRAFTS_DIR = path.join(ROOT, 'drafts');
@@ -24,14 +25,16 @@ const ASSETS_POSTS_DIR = path.join(ROOT, 'src/assets/posts');
 const argv = process.argv.slice(2);
 const isAll = argv.includes('--all');
 const isDraft = argv.includes('--draft');
+const useAi = argv.includes('--ai');
 const slugArg = argv.find((a) => !a.startsWith('--'));
 
 if (!slugArg && !isAll) {
   console.log(`使い方:
-  npm run compose -- <slug> [--publish]
-  npm run compose -- --all
+  npm run compose -- <slug> [--publish] [--ai]
+  npm run compose -- --all [--ai]
 
 ※ drafts/ 内のログ、写真、メモを結合して正式な記事を生成します。
+  --ai を付けると、結合前に AI が memo.md を自動成形します。
 `);
   process.exit(1);
 }
@@ -61,6 +64,15 @@ function composeOne(slug) {
   if (!fs.existsSync(draftDir)) {
     console.error(`下書きが見つかりません: drafts/${slug}`);
     return;
+  }
+
+  // --ai が指定されている場合は事前にAIで memo.md を成形
+  if (useAi) {
+    try {
+      execSync(`node "${path.join(ROOT, 'scripts/ai.mjs')}" draft "${slug}"`, { stdio: 'inherit' });
+    } catch (e) {
+      console.warn('⚠ AI成形の実行中にエラーが発生しました（スキップします）:', e.message);
+    }
   }
 
   // 1. activity.json (GPSログ)
@@ -112,6 +124,7 @@ function composeOne(slug) {
     `description: ${JSON.stringify(descParts.join('｜'))}`,
     `date: ${date.toISOString()}`,
     `category: ${category}`,
+    `kind: log`,
     `tags: ${JSON.stringify(CAT[category]?.tags || [])}`,
     `draft: ${isDraft ? 'true' : 'false'}`,
   ];

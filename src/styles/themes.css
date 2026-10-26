@@ -1,0 +1,107 @@
+/**
+ * カラーテーマ・プリセット定義
+ * 5種類のアウトドア・自然由来のテーマパレット
+ * (data-theme-preset="forest" | "ocean" | "sunset" | "granite" | "plum")
+ */
+
+/* ============================================================
+   1. Forest (山道・深緑・デフォルト)
+   ============================================================ */
+:root[data-theme-preset='forest'],
+:root:not([data-theme-preset]) {
+  --accent: hsl(152 26% 34%);
+  --accent-soft: hsl(152 20% 88%);
+  --heat-1: hsl(152 22% 78%);
+  --heat-2: hsl(152 24% 60%);
+  --heat-3: hsl(152 26% 44%);
+  --heat-4: hsl(152 32% 30%);
+}
+:root[data-theme='dark'][data-theme-preset='forest'],
+:root[data-theme='dark']:not([data-theme-preset]) {
+  --accent: hsl(152 30% 62%);
+  --accent-soft: hsl(152 18% 18%);
+  --heat-1: hsl(152 20% 22%);
+  --heat-2: hsl(152 24% 34%);
+  --heat-3: hsl(152 28% 48%);
+  --heat-4: hsl(152 34% 64%);
+}
+
+/* ============================================================
+   2. Ocean (青空・稜線の海・オーシャン)
+   ============================================================ */
+:root[data-theme-preset='ocean'] {
+  --accent: hsl(205 60% 36%);
+  --accent-soft: hsl(205 45% 90%);
+  --heat-1: hsl(205 35% 80%);
+  --heat-2: hsl(205 45% 62%);
+  --heat-3: hsl(205 55% 46%);
+  --heat-4: hsl(205 65% 32%);
+}
+:root[data-theme='dark'][data-theme-preset='ocean'] {
+  --accent: hsl(205 65% 65%);
+  --accent-soft: hsl(205 25% 18%);
+  --heat-1: hsl(205 25% 22%);
+  --heat-2: hsl(205 35% 34%);
+  --heat-3: hsl(205 45% 48%);
+  --heat-4: hsl(205 60% 65%);
+}
+
+/* ============================================================
+   3. Sunset (夕焼け・テラコッタ・岩肌)
+   ============================================================ */
+:root[data-theme-preset='sunset'] {
+  --accent: hsl(18 68% 42%);
+  --accent-soft: hsl(18 50% 90%);
+  --heat-1: hsl(18 40% 82%);
+  --heat-2: hsl(18 50% 64%);
+  --heat-3: hsl(18 60% 48%);
+  --heat-4: hsl(18 70% 34%);
+}
+:root[data-theme='dark'][data-theme-preset='sunset'] {
+  --accent: hsl(18 72% 64%);
+  --accent-soft: hsl(18 30% 18%);
+  --heat-1: hsl(18 30% 22%);
+  --heat-2: hsl(18 40% 34%);
+  --heat-3: hsl(18 50% 48%);
+  --heat-4: hsl(18 65% 64%);
+}
+
+/* ============================================================
+   4. Granite (花崗岩・ミニマルモノトーン)
+   ============================================================ */
+:root[data-theme-preset='granite'] {
+  --accent: hsl(220 16% 36%);
+  --accent-soft: hsl(220 12% 88%);
+  --heat-1: hsl(220 12% 80%);
+  --heat-2: hsl(220 14% 62%);
+  --heat-3: hsl(220 16% 45%);
+  --heat-4: hsl(220 20% 28%);
+}
+:root[data-theme='dark'][data-theme-preset='granite'] {
+  --accent: hsl(220 18% 70%);
+  --accent-soft: hsl(220 12% 20%);
+  --heat-1: hsl(220 12% 24%);
+  --heat-2: hsl(220 14% 36%);
+  --heat-3: hsl(220 16% 50%);
+  --heat-4: hsl(220 18% 70%);
+}
+
+/* ============================================================
+   5. Plum (山桜・ダスティワイン・和モダン)
+   ============================================================ */
+:root[data-theme-preset='plum'] {
+  --accent: hsl(338 38% 40%);
+  --accent-soft: hsl(338 30% 90%);
+  --heat-1: hsl(338 25% 82%);
+  --heat-2: hsl(338 32% 65%);
+  --heat-3: hsl(338 38% 48%);
+  --heat-4: hsl(338 45% 32%);
+}
+:root[data-theme='dark'][data-theme-preset='plum'] {
+  --accent: hsl(338 45% 68%);
+  --accent-soft: hsl(338 22% 18%);
+  --heat-1: hsl(338 22% 22%);
+  --heat-2: hsl(338 28% 34%);
+  --heat-3: hsl(338 35% 48%);
+  --heat-4: hsl(338 45% 68%);
+}

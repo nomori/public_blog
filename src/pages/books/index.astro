@@ -1,0 +1,111 @@
+---
+import Base from '../../layouts/Base.astro';
+import BookCover from '../../components/BookCover.astro';
+import GoalBars from '../../components/GoalBars.astro';
+import { getBooks, getPosts, fmtDate, jst, url } from '../../lib/content';
+import { nowJst } from '../../lib/stats';
+
+const books = await getBooks();
+const posts = await getPosts();
+const reading = books.filter((b) => b.data.status === 'reading');
+const read = books.filter((b) => b.data.status === 'read');
+const want = books.filter((b) => b.data.status === 'want');
+const year = nowJst().y;
+const readThisYear = read.filter((b) => b.data.finished && jst(b.data.finished).y === year);
+const pagesThisYear = readThisYear.reduce((s, b) => s + (b.data.pages ?? 0), 0);
+const byYear = Object.entries(
+  read.reduce<Record<string, typeof read>>((acc, b) => ((acc[b.data.finished ? jst(b.data.finished).y : '—'] ??= []).push(b), acc), {}),
+).sort((a, b) => b[0].localeCompare(a[0]));
+const stars = (r?: number) => (r == null ? '' : '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r)));
+---
+<Base title="Books" description="読書ログ — 読んでいる本、読み終えた本、これから読む本" section="Books">
+  <div class="container">
+    <header class="page-head head">
+      <div>
+        <p class="eyebrow">Books</p>
+        <h1>読書ログ</h1>
+      </div>
+      <dl class="kpi">
+        <div><dt class="eyebrow">{year} Finished</dt><dd class="num">{readThisYear.length}<small>冊</small></dd></div>
+        <div><dt class="eyebrow">Pages</dt><dd class="num">{pagesThisYear.toLocaleString()}<small>p</small></dd></div>
+        <div><dt class="eyebrow">Total</dt><dd class="num">{read.length}<small>冊</small></dd></div>
+      </dl>
+    </header>
+
+    {reading.length > 0 && (
+      <section>
+        <div class="section-head"><h2>Reading now <small>読書中</small></h2></div>
+        <div class="now">
+          {reading.map((b) => (
+            <a href={url(`/books/${b.id}/`)} class="now-card" id={`book-${b.id}`}>
+              <BookCover book={b} size="md" eager />
+              <div class="info">
+                <p class="eyebrow">{b.data.started ? `Since ${fmtDate(b.data.started)}` : 'Reading'}</p>
+                <h3>{b.data.title}</h3>
+                <p class="au">{b.data.author}</p>
+                {b.data.quote && <blockquote>{b.data.quote}</blockquote>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {byYear.map(([y, list]) => (
+      <section>
+        <div class="section-head"><h2 class="num">{y}</h2><span class="eyebrow">{list.length} books</span></div>
+        <ul class="shelf">
+          {list.map((b) => (
+            <li>
+              <a href={url(`/books/${b.id}/`)} id={`book-${b.id}`}>
+                <BookCover book={b} />
+                <span class="stars" aria-label={b.data.rating != null ? `評価 ${b.data.rating}` : undefined}>{stars(b.data.rating)}</span>
+                <span class="t">{b.data.title}</span>
+                <span class="a">{b.data.author}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    {want.length > 0 && (
+      <section>
+        <div class="section-head"><h2>Want to read <small>積読・読みたい</small></h2><span class="eyebrow">{want.length}</span></div>
+        <ul class="shelf small">
+          {want.map((b) => (
+            <li><a href={url(`/books/${b.id}/`)} id={`book-${b.id}`}><BookCover book={b} size="sm" /><span class="t">{b.data.title}</span></a></li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <aside class="goal"><GoalBars posts={posts} books={books} /></aside>
+  </div>
+</Base>
+
+<style>
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; }
+  .kpi { display: flex; gap: 2.5rem; margin: 0; }
+  .kpi dd { margin: .2rem 0 0; font-size: 2rem; font-weight: 300; line-height: 1; }
+  .kpi small { font-size: .75rem; color: var(--ink-faint); margin-left: .2rem; }
+  .section-head h2 small { font-family: var(--sans); font-size: .72rem; font-weight: 400; color: var(--ink-faint); letter-spacing: .1em; margin-left: .5rem; }
+  .now { display: grid; grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); gap: 2rem; }
+  .now-card { display: grid; grid-template-columns: 8.5rem 1fr; gap: 1.6rem; align-items: start; padding: 1.4rem; background: var(--bg-soft); border-radius: 8px; transition: transform .4s var(--ease), box-shadow .4s; }
+  .now-card:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -22px rgb(0 0 0 / .45); }
+  .info h3 { margin: .3rem 0 .2rem; font-size: 1.15rem; }
+  .info .eyebrow { margin: 0; color: var(--accent); }
+  .au { margin: 0; font-size: .82rem; color: var(--ink-soft); }
+  blockquote { margin: 1rem 0 0; padding-left: .9rem; border-left: 2px solid var(--accent); font-family: var(--serif); font-size: .86rem; color: var(--ink-soft); line-height: 1.8; }
+  .shelf { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 2.2rem 1.6rem; }
+  .shelf.small { grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 1.4rem 1rem; }
+  .shelf a { display: flex; flex-direction: column; gap: .15rem; }
+  .shelf a :global(.cover) { margin-bottom: .6rem; transition: transform .5s var(--ease); }
+  .shelf a:hover :global(.cover) { transform: translateY(-5px) rotate(-1.2deg); }
+  .stars { font-size: .66rem; color: var(--c-trail); letter-spacing: .1em; min-height: 1em; }
+  .t { font-family: var(--serif); font-size: .86rem; line-height: 1.45; transition: color .25s; }
+  .small .t { font-size: .72rem; }
+  .shelf a:hover .t { color: var(--accent); }
+  .a { font-size: .7rem; color: var(--ink-faint); }
+  .goal { margin-top: 5rem; max-width: 26rem; }
+</style>

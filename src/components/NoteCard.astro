@@ -1,0 +1,63 @@
+---
+// つぶやき1件（手書き / X 取り込み 共通）
+import { render } from 'astro:content';
+import { fmtDate, fmtTime, url, type Note } from '../lib/content';
+
+interface Props { note: Note; compact?: boolean }
+const { note, compact = false } = Astro.props;
+const { Content } = await render(note);
+const d = note.data;
+const SRC = { local: 'Note', x: 'X', bluesky: 'Bluesky', mastodon: 'Mastodon' } as const;
+---
+<article class:list={['note', { compact }]} id={note.id} data-source={d.source}>
+  <header>
+    <a href={url(`/notes/#${note.id}`)} class="when num">{fmtDate(d.date)}<span>{fmtTime(d.date)}</span></a>
+    {d.pinned && <span class="pin eyebrow">Pinned</span>}
+    <span class="src" title={`via ${SRC[d.source]}`}>
+      {d.source === 'x' ? (
+        <svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M18.2 2.3h3.4l-7.4 8.4 8.7 11.5h-6.8l-5.3-7-6.1 7H1.3l7.9-9L.9 2.3h7l4.8 6.4 5.5-6.4Zm-1.2 17.9h1.9L7 4.2H5l12 16Z"/></svg>
+      ) : (
+        <span class="eyebrow">{SRC[d.source]}</span>
+      )}
+    </span>
+  </header>
+  <div class="body prose"><Content /></div>
+  {d.images.length > 0 && !compact && (
+    <div class:list={['imgs', `n${Math.min(d.images.length, 4)}`]}>
+      {d.images.slice(0, 4).map((src) => (
+        <a href={url(src)} target="_blank" rel="noopener"><img src={url(src)} alt="" loading="lazy" decoding="async" /></a>
+      ))}
+    </div>
+  )}
+  {(d.tags.length > 0 || d.url) && !compact && (
+    <footer>
+      <span class="tags">{d.tags.map((t) => <a class="chip" href={url(`/tags/${encodeURIComponent(t.toLowerCase())}/`)}>#{t}</a>)}</span>
+      {d.url && <a href={d.url} class="orig link-underline" target="_blank" rel="noopener">元の投稿 ↗</a>}
+    </footer>
+  )}
+</article>
+
+<style>
+  .note { padding: 1.4rem 0; border-bottom: 1px solid var(--line); }
+  header { display: flex; align-items: center; gap: .7rem; }
+  .when { font-size: .72rem; color: var(--ink-faint); display: flex; gap: .5rem; }
+  .when:hover { color: var(--accent); }
+  .pin { color: var(--accent); font-size: .6rem; }
+  .src { margin-left: auto; color: var(--ink-faint); display: flex; }
+  .src .eyebrow { font-size: .58rem; }
+  .body { font-size: .95rem; margin-top: .35rem; }
+  .body :global(p) { margin: 0 0 .5rem; }
+  .body :global(p:last-child) { margin-bottom: 0; }
+  .compact .body { font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .imgs { display: grid; gap: 4px; margin-top: .9rem; border-radius: 10px; overflow: hidden; max-width: 34rem; }
+  .imgs.n2, .imgs.n4 { grid-template-columns: 1fr 1fr; }
+  .imgs.n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+  .imgs.n3 a:first-child { grid-row: span 2; }
+  .imgs a { display: block; overflow: hidden; background: var(--bg-soft); }
+  .imgs img { width: 100%; height: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform .8s var(--ease); }
+  .imgs.n1 img { aspect-ratio: 16 / 10; }
+  .imgs a:hover img { transform: scale(1.04); }
+  footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: .8rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .orig { font-size: .72rem; color: var(--ink-faint); white-space: nowrap; }
+</style>

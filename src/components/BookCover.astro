@@ -1,0 +1,39 @@
+---
+// 書影（無ければタイトルから生成した装丁風カバー）
+import { Image } from 'astro:assets';
+import type { Book } from '../lib/content';
+
+interface Props { book: Book; size?: 'sm' | 'md' | 'lg'; eager?: boolean }
+const { book, size = 'md', eager = false } = Astro.props;
+const { title, author, cover } = book.data;
+// タイトルから落ち着いた色を決める
+let h = 0;
+for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) % 360;
+const PALETTE = [152, 24, 210, 38, 350, 190, 80];
+const hue = PALETTE[h % PALETTE.length];
+const widths = { sm: [120, 240], md: [200, 400], lg: [320, 640] }[size];
+---
+<div class:list={['cover', size]} style={`--h:${hue}`}>
+  {cover ? (
+    <Image src={cover} alt={`${title} の書影`} widths={widths} sizes={`${widths[0]}px`} loading={eager ? 'eager' : 'lazy'} />
+  ) : (
+    <div class="gen" aria-label={`${title} の書影（自動生成）`}>
+      <span class="t">{title}</span>
+      <span class="a">{author}</span>
+    </div>
+  )}
+</div>
+
+<style>
+  .cover { aspect-ratio: 2 / 3; border-radius: 2px 5px 5px 2px; overflow: hidden; position: relative; background: var(--bg-soft);
+    box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 10px 24px -12px rgb(0 0 0 / .35); }
+  .cover::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgb(0 0 0 / .18) 0, rgb(255 255 255 / .12) 3%, transparent 7%); }
+  .cover :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .gen { height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 14% 12% 12% 16%;
+    background: linear-gradient(160deg, hsl(var(--h) 24% 36%), hsl(var(--h) 30% 22%)); color: hsl(var(--h) 30% 92%); }
+  .t { font-family: var(--serif); font-weight: 700; line-height: 1.4; font-size: 1rem; letter-spacing: .06em; }
+  .a { font-size: .62rem; letter-spacing: .12em; opacity: .8; }
+  .sm .t { font-size: .7rem; } .sm .a { font-size: .5rem; }
+  .lg .t { font-size: 1.4rem; } .lg .a { font-size: .8rem; }
+</style>

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap');
+@import './themes.css';
 
 :root {
   --bg: #f6f5f1;
@@ -14,6 +15,20 @@
   --measure: 40rem;
   --wide: 68rem;
   --ease: cubic-bezier(.2, .7, .2, 1);
+  /* カテゴリ色 */
+  --c-hike: hsl(152 26% 38%);
+  --c-run: hsl(18 58% 52%);
+  --c-trail: hsl(38 62% 44%);
+  --c-boulder: hsl(212 32% 50%);
+  --c-misc: hsl(40 6% 58%);
+  /* ヒートマップ */
+  --heat-0: #e7e4dc;
+  --heat-1: hsl(152 22% 78%);
+  --heat-2: hsl(152 24% 60%);
+  --heat-3: hsl(152 26% 44%);
+  --heat-4: hsl(152 32% 30%);
+  --up: hsl(152 30% 36%);
+  --down: hsl(8 50% 50%);
   color-scheme: light;
 }
 
@@ -26,6 +41,18 @@
   --line: #2c2d2a;
   --accent: hsl(152 30% 62%);
   --accent-soft: hsl(152 18% 18%);
+  --c-hike: hsl(152 30% 58%);
+  --c-run: hsl(18 62% 64%);
+  --c-trail: hsl(40 62% 60%);
+  --c-boulder: hsl(212 40% 66%);
+  --c-misc: hsl(40 6% 50%);
+  --heat-0: #1f201e;
+  --heat-1: hsl(152 20% 22%);
+  --heat-2: hsl(152 24% 34%);
+  --heat-3: hsl(152 28% 48%);
+  --heat-4: hsl(152 34% 64%);
+  --up: hsl(152 34% 62%);
+  --down: hsl(8 60% 66%);
   color-scheme: dark;
 }
 
@@ -97,6 +124,29 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; line-height: 1.45; let
 }
 a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.is-accent { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
+button.chip { background: none; cursor: pointer; font-family: inherit; }
+button.chip[aria-pressed='true'] { border-color: var(--ink); color: var(--ink); }
+
+/* Page head（一覧ページ共通） */
+.page-head { padding: 5rem 0 1rem; }
+.page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
+.page-head .lede { color: var(--ink-soft); font-size: .92rem; margin: .6rem 0 0; }
+
+/* カテゴリ色ドット */
+.cat-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: var(--c, var(--c-misc)); flex: none; }
+[data-cat='hike'] { --c: var(--c-hike); }
+[data-cat='run'] { --c: var(--c-run); }
+[data-cat='trail'] { --c: var(--c-trail); }
+[data-cat='boulder'] { --c: var(--c-boulder); }
+[data-cat='misc'] { --c: var(--c-misc); }
+
+/* 前月比バッジ */
+.delta { font-family: 'Inter', sans-serif; font-size: .68rem; font-weight: 500; letter-spacing: .02em; padding: .05rem .4rem; border-radius: 99px; white-space: nowrap; }
+.delta.up { color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); }
+.delta.down { color: var(--down); background: color-mix(in srgb, var(--down) 12%, transparent); }
+.delta.flat, .delta.new { color: var(--ink-faint); background: var(--bg-soft); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Reveal animation */
 @media (prefers-reduced-motion: no-preference) {

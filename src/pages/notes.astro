@@ -1,31 +1,37 @@
 ---
 import Base from '../layouts/Base.astro';
-import { render } from 'astro:content';
-import { getNotes, fmtDate } from '../lib/content';
+import NoteCard from '../components/NoteCard.astro';
+import { getNotes } from '../lib/content';
 const notes = await getNotes();
-const rendered = await Promise.all(notes.map(async (n) => ({ n, Content: (await render(n)).Content })));
+const sources = [...new Set(notes.map((n) => n.data.source))];
+const LABEL = { local: 'Notes', x: 'X', bluesky: 'Bluesky', mastodon: 'Mastodon' } as const;
 ---
-<Base title="Notes" description="日々の短い記録">
+<Base title="Notes" description="日々の短いつぶやき（X からの取り込みを含む）" section="Notes">
   <div class="measure">
-    <header class="page-head"><p class="eyebrow">Notes</p><h1>メモ</h1></header>
-    <ol class="timeline" data-pagefind-body>
-      {rendered.map(({ n, Content }) => (
-        <li id={n.id}>
-          <a href={`#${n.id}`} class="num when">{fmtDate(n.data.date)}</a>
-          <div class="prose body"><Content /></div>
-          {n.data.tags.length > 0 && <p class="tags">{n.data.tags.map((t) => <span class="chip">#{t}</span>)}</p>}
-        </li>
-      ))}
-    </ol>
+    <header class="page-head">
+      <p class="eyebrow">Notes</p>
+      <h1>つぶやき</h1>
+      <p class="lede num">{notes.length} notes</p>
+    </header>
+    {sources.length > 1 && (
+      <div class="filters" role="group" aria-label="取り込み元で絞り込み">
+        <button type="button" class="chip" data-src="all" aria-pressed="true" id="src-all">All</button>
+        {sources.map((s) => <button type="button" class="chip" data-src={s} aria-pressed="false" id={`src-${s}`}>{LABEL[s]}</button>)}
+      </div>
+    )}
+    <div class="list" data-pagefind-body>
+      {notes.map((n) => <NoteCard note={n} />)}
+    </div>
   </div>
 </Base>
+<script>
+  const btns = document.querySelectorAll<HTMLButtonElement>('[data-src]');
+  btns.forEach((b) => b.addEventListener('click', () => {
+    btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll<HTMLElement>('.note').forEach((n) => (n.hidden = b.dataset.src !== 'all' && n.dataset.source !== b.dataset.src));
+  }));
+</script>
 <style>
-  .page-head { padding: 5rem 0 2rem; }
-  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
-  .timeline { list-style: none; margin: 0; padding: 0 0 0 1.5rem; border-left: 1px solid var(--line); }
-  li { position: relative; padding: 0 0 2.5rem; }
-  li::before { content: ''; position: absolute; left: calc(-1.5rem - 4px); top: .7rem; width: 7px; height: 7px; border-radius: 50%; background: var(--bg); border: 1px solid var(--accent); }
-  .when { font-size: .74rem; color: var(--ink-faint); }
-  .body :global(p) { margin: .2rem 0 .6rem; }
-  .tags { display: flex; gap: .4rem; margin: 0; }
+  .filters { display: flex; gap: .5rem; margin: 1.5rem 0 .5rem; }
+  .list :global(.note:target) { background: var(--accent-soft); margin-inline: -1rem; padding-inline: 1rem; border-radius: 6px; }
 </style>

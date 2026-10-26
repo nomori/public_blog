@@ -1,28 +1,47 @@
 ---
+// Archive: 記録・記事をすべて月別に一覧
 import Base from '../../layouts/Base.astro';
-import PostCard from '../../components/PostCard.astro';
-import { getPosts } from '../../lib/content';
+import { getPosts, kindOf, monthKey, fmtDate, url } from '../../lib/content';
+import { CATEGORIES, KINDS } from '../../consts';
 const posts = await getPosts();
-const byYear = Object.entries(
-  posts.reduce<Record<string, typeof posts>>((acc, p) => ((acc[p.data.date.getFullYear()] ??= []).push(p), acc), {}),
-).sort((a, b) => Number(b[0]) - Number(a[0]));
+const byMonth = Object.entries(
+  posts.reduce<Record<string, typeof posts>>((acc, p) => ((acc[monthKey(p.data.date)] ??= []).push(p), acc), {}),
+).sort((a, b) => b[0].localeCompare(a[0]));
 ---
-<Base title="Journal" description="登山・ランニング・トレラン・ボルダリングの記録と雑記">
-  <div class="container">
+<Base title="Archive" description="すべての記録と記事のアーカイブ">
+  <div class="measure">
     <header class="page-head">
-      <p class="eyebrow">Journal</p>
-      <h1>記事</h1>
+      <p class="eyebrow">Archive</p>
+      <h1>アーカイブ</h1>
+      <p class="lede num">{posts.length} entries</p>
     </header>
-    {byYear.map(([year, list]) => (
+    {byMonth.map(([key, list]) => (
       <section>
-        <div class="section-head"><h2 class="num">{year}</h2><span class="eyebrow">{list.length} posts</span></div>
-        <div class="grid">{list.map((p) => <PostCard post={p} />)}</div>
+        <h2 class="num ym"><a href={url(`/stats/${key.replace('-', '/')}/`)}>{key.replace('-', '.')}</a></h2>
+        <ul>
+          {list.map((p) => (
+            <li data-cat={p.data.category}>
+              <time class="num">{fmtDate(p.data.date).slice(5)}</time>
+              <span class={`kind ${kindOf(p)}`}>{KINDS[kindOf(p)].label}</span>
+              <a href={url(`/posts/${p.id}/`)}>{p.data.title}</a>
+              <span class="cat eyebrow"><i class="cat-dot" />{CATEGORIES[p.data.category].en}</span>
+            </li>
+          ))}
+        </ul>
       </section>
     ))}
   </div>
 </Base>
 <style>
-  .page-head { padding: 5rem 0 0; }
-  .page-head h1 { font-size: 2.2rem; margin: .3rem 0 0; font-weight: 500; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 3rem 2rem; }
+  .ym { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 1.1rem; margin: 3rem 0 .5rem; }
+  .ym a:hover { color: var(--accent); }
+  ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  li { display: grid; grid-template-columns: 3rem 3rem 1fr auto; gap: .8rem; align-items: baseline; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+  time { font-size: .76rem; color: var(--ink-faint); }
+  .kind { font-size: .64rem; text-align: center; border-radius: 3px; padding: .05rem 0; }
+  .kind.log { background: var(--bg-soft); color: var(--ink-soft); }
+  .kind.article { background: var(--accent-soft); color: var(--accent); }
+  li a { font-family: var(--serif); transition: color .25s; }
+  li a:hover { color: var(--accent); }
+  .cat { display: flex; align-items: center; gap: .35rem; font-size: .58rem; }
 </style>

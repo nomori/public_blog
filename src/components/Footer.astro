@@ -1,20 +1,28 @@
 ---
 import { SITE_TITLE, AUTHOR } from '../consts';
 import { url } from '../lib/content';
+const links = [
+  { href: url('/posts/'), label: 'Archive' },
+  { href: url('/photos/'), label: 'Photos' },
+  { href: url('/tags/'), label: 'Tags' },
+  { href: url('/search/'), label: 'Search' },
+  { href: url('/rss.xml'), label: 'RSS' },
+];
 ---
 <footer>
   <div class="container inner">
     <p class="brand">{SITE_TITLE}</p>
-    <p class="meta">
-      <a href={url('/rss.xml')} class="link-underline">RSS</a>
-      <span>·</span>
-      <span>© {new Date().getFullYear()} {AUTHOR}</span>
-    </p>
+    <nav class="links" aria-label="サブ">
+      {links.map((l) => <a href={l.href} class="link-underline">{l.label}</a>)}
+    </nav>
+    <p class="meta">© {new Date().getFullYear()} {AUTHOR}</p>
   </div>
 </footer>
 <style>
   footer { margin-top: 8rem; border-top: 1px solid var(--line); }
-  .inner { display: flex; justify-content: space-between; align-items: center; padding: 2.5rem 0 3rem; font-size: .78rem; color: var(--ink-faint); }
+  .inner { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding: 2.5rem 0 3rem; font-size: .78rem; color: var(--ink-faint); }
   .brand { font-family: var(--serif); letter-spacing: .08em; margin: 0; }
-  .meta { display: flex; gap: .6rem; margin: 0; }
+  .links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+  .links a:hover { color: var(--ink); }
+  .meta { margin: 0; }
 </style>

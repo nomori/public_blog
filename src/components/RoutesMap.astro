@@ -1,0 +1,107 @@
+---
+// 全ルート（足跡）マップ：複数記録のGPXルートを1枚の地図に重ねる
+import fs from 'node:fs';
+import path from 'node:path';
+import { CATEGORIES, type CategoryKey } from '../consts';
+import { fmtDate, url, type Post } from '../lib/content';
+
+interface Props { posts: Post[]; height?: string; id?: string }
+const { posts, height = '460px', id = 'routes-map' } = Astro.props;
+
+const routes = posts
+  .filter((p) => p.data.activity?.route)
+  .map((p) => {
+    const file = path.join(process.cwd(), 'public', p.data.activity!.route!);
+    if (!fs.existsSync(file)) return null;
+    const pts: number[][] = JSON.parse(fs.readFileSync(file, 'utf8')).points ?? [];
+    if (pts.length < 2) return null;
+    // 1ルート最大 ~250点に間引き
+    const step = Math.max(1, Math.floor(pts.length / 250));
+    const line = pts.filter((_, i) => i % step === 0 || i === pts.length - 1).map((q) => [+q[0].toFixed(5), +q[1].toFixed(5)]);
+    return {
+      id: p.id,
+      href: url(`/posts/${p.id}/`),
+      title: p.data.title,
+      date: fmtDate(p.data.date),
+      cat: p.data.category,
+      catLabel: CATEGORIES[p.data.category].label,
+      km: p.data.activity!.distanceKm ?? null,
+      up: p.data.activity!.elevationGainM ?? null,
+      line,
+    };
+  })
+  .filter(Boolean);
+const cats = [...new Set(routes.map((r) => r!.cat))] as CategoryKey[];
+---
+{routes.length > 0 ? (
+  <div class="routes-map-wrap">
+    <div class="filters" role="group" aria-label="カテゴリで絞り込み">
+      {cats.map((c) => (
+        <button type="button" class="chip" data-cat={c} data-route-filter={c} aria-pressed="true"><i class="cat-dot" /> {CATEGORIES[c].label}</button>
+      ))}
+      <span class="count num">{routes.length} routes</span>
+    </div>
+    <div id={id} class="rmap" style={`height:${height}`} data-routes={JSON.stringify(routes)}></div>
+  </div>
+) : (
+  <p class="no-routes">ルート付きの記録はまだありません。</p>
+)}
+
+{routes.length > 0 && (
+  <>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script is:inline define:vars={{ mapId: id }}>
+      (() => {
+        const el = document.getElementById(mapId);
+        if (!el || !window.L) return;
+        const routes = JSON.parse(el.dataset.routes || '[]');
+        const css = getComputedStyle(document.documentElement);
+        const color = (c) => css.getPropertyValue(`--c-${c}`).trim() || '#3a7d5c';
+        const map = L.map(el, { scrollWheelZoom: false });
+        L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>',
+        }).addTo(map);
+        const layers = {};
+        const all = [];
+        routes.forEach((r) => {
+          const base = { color: color(r.cat), weight: 3.5, opacity: .85, lineJoin: 'round' };
+          const pl = L.polyline(r.line, base);
+          const start = L.circleMarker(r.line[0], { radius: 4, color: color(r.cat), fillColor: '#fff', fillOpacity: 1, weight: 2 });
+          const stats = [r.km != null ? `${r.km} km` : '', r.up != null ? `↑${r.up} m` : ''].filter(Boolean).join(' · ');
+          const html = `<a href="${r.href}" style="display:block;min-width:160px;color:inherit;text-decoration:none">
+            <div style="font-size:10px;letter-spacing:.15em;color:#888">${r.date} · ${r.catLabel}</div>
+            <div style="font-weight:700;margin:2px 0 4px;font-size:13px">${r.title}</div>
+            <div style="font-size:11px;color:#666">${stats}</div>
+            <div style="font-size:11px;margin-top:6px;color:${color(r.cat)}">記録を見る →</div></a>`;
+          pl.bindPopup(html); start.bindPopup(html);
+          pl.bindTooltip(r.title, { sticky: true, direction: 'top' });
+          pl.on('mouseover', () => { pl.setStyle({ weight: 6, opacity: 1 }); pl.bringToFront(); });
+          pl.on('mouseout', () => pl.setStyle(base));
+          const g = L.featureGroup([pl, start]).addTo(map);
+          (layers[r.cat] ??= []).push(g);
+          all.push(pl);
+        });
+        map.fitBounds(L.featureGroup(all).getBounds(), { padding: [30, 30] });
+        document.querySelectorAll('[data-route-filter]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const on = btn.getAttribute('aria-pressed') !== 'true';
+            btn.setAttribute('aria-pressed', String(on));
+            (layers[btn.dataset.routeFilter] || []).forEach((g) => (on ? g.addTo(map) : g.remove()));
+          });
+        });
+      })();
+    </script>
+  </>
+)}
+
+<style>
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .8rem; }
+  .filters .chip { display: inline-flex; align-items: center; gap: .4rem; }
+  .filters .chip[aria-pressed='false'] { opacity: .45; }
+  .count { margin-left: auto; font-size: .72rem; color: var(--ink-faint); }
+  .rmap { width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); z-index: 0; background: var(--bg-soft); }
+  .no-routes { color: var(--ink-faint); font-size: .85rem; }
+  :global([data-theme='dark']) .rmap :global(.leaflet-tile-pane) { filter: brightness(.75) contrast(1.1) saturate(.6); }
+</style>

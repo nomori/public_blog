@@ -2,13 +2,22 @@
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PostCard from '../components/PostCard.astro';
-import { getPosts, getNotes, fmtDate, url } from '../lib/content';
+import LogRow from '../components/LogRow.astro';
+import MonthPanel from '../components/MonthPanel.astro';
+import GoalBars from '../components/GoalBars.astro';
+import NoteCard from '../components/NoteCard.astro';
+import BookCover from '../components/BookCover.astro';
+import { getPosts, getNotes, getBooks, kindOf, fmtDate, url } from '../lib/content';
 import { CATEGORIES, SITE_TAGLINE } from '../consts';
 import hero from '../assets/photos/ridge.jpg';
 
 const posts = await getPosts();
+const logs = posts.filter((p) => kindOf(p) === 'log').slice(0, 6);
+const articles = posts.filter((p) => kindOf(p) === 'article').slice(0, 3);
 const notes = (await getNotes()).slice(0, 4);
-const latest = posts.slice(0, 6);
+const books = await getBooks();
+const reading = books.filter((b) => b.data.status === 'reading').slice(0, 2);
+const finished = books.filter((b) => b.data.status === 'read').slice(0, 4 - reading.length);
 
 // 累計（アクティビティ記事から集計）
 const totals = posts.reduce(
@@ -39,27 +48,50 @@ const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, posts.f
       <div><span class="num big">{totals.count}</span><span class="eyebrow">activities</span></div>
     </section>
 
+    <section class="now" aria-label="今月と目標">
+      <div class="panel"><MonthPanel posts={posts} /></div>
+      <div class="panel"><GoalBars posts={posts} books={books} /></div>
+    </section>
+
     <nav class="cats" aria-label="カテゴリ">
       {Object.entries(CATEGORIES).map(([k, c]) => (
-        <a href={url(`/tags/${k}/`)} class="cat" id={`cat-${k}`}>
-          <span class="eyebrow">{c.en}</span>
+        <a href={url(`/tags/${k}/`)} class="cat" id={`cat-${k}`} data-cat={k}>
+          <span class="eyebrow"><i class="cat-dot" /> {c.en}</span>
           <span class="cat-label">{c.label}</span>
           <span class="num cat-count">{counts[k]}</span>
         </a>
       ))}
     </nav>
 
-    <div class="section-head"><h2>Journal</h2><a href={url('/posts/')} class="link-underline">すべての記事 →</a></div>
+    <div class="section-head"><h2>Logs <small>記録</small></h2><a href={url('/logs/')} class="link-underline">すべての記録 →</a></div>
+    <ul class="logs">{logs.map((p) => <LogRow post={p} showYear />)}</ul>
+
+    <div class="section-head"><h2>Articles <small>記事</small></h2><a href={url('/articles/')} class="link-underline">すべての記事 →</a></div>
     <div class="post-grid">
-      {latest.map((p) => <PostCard post={p} />)}
+      {articles.map((p) => <PostCard post={p} />)}
     </div>
 
-    <div class="section-head"><h2>Notes</h2><a href={url('/notes/')} class="link-underline">すべてのメモ →</a></div>
-    <ul class="notes">
-      {notes.map((n) => (
-        <li><time class="num">{fmtDate(n.data.date)}</time><p>{n.body?.trim()}</p></li>
-      ))}
-    </ul>
+    <div class="duo">
+      <section>
+        <div class="section-head"><h2>Notes <small>つぶやき</small></h2><a href={url('/notes/')} class="link-underline">すべて →</a></div>
+        <div class="notes">{notes.map((n) => <NoteCard note={n} compact />)}</div>
+      </section>
+      <section>
+        <div class="section-head"><h2>Reading <small>読書</small></h2><a href={url('/books/')} class="link-underline">本棚 →</a></div>
+        <ul class="shelf">
+          {[...reading, ...finished].map((b) => (
+            <li>
+              <a href={url(`/books/${b.id}/`)} id={`home-book-${b.id}`}>
+                <BookCover book={b} size="sm" />
+                <span class="eyebrow st">{b.data.status === 'reading' ? 'Reading' : b.data.finished ? fmtDate(b.data.finished) : ''}</span>
+                <span class="bt">{b.data.title}</span>
+                <span class="ba">{b.data.author}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   </div>
 </Base>
 
@@ -77,26 +109,44 @@ const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, posts.f
   .totals div { display: flex; flex-direction: column; gap: .25rem; }
   .big { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 300; line-height: 1; letter-spacing: -.01em; }
 
+  .now { display: grid; grid-template-columns: 1.25fr 1fr; gap: 0; border-bottom: 1px solid var(--line); }
+  .panel { padding: 2.5rem 0; }
+  .panel:nth-child(1) { padding-right: 2.5rem; border-right: 1px solid var(--line); }
+  .panel:nth-child(2) { padding-left: 2.5rem; }
+
   .cats { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--line); }
   .cat { display: flex; flex-direction: column; padding: 1.6rem 1rem 1.6rem 0; position: relative; transition: color .3s; }
+  .cat .eyebrow { display: flex; align-items: center; gap: .3rem; }
   .cat + .cat { padding-left: 1rem; border-left: 1px solid var(--line); }
   .cat-label { font-family: var(--serif); font-size: 1.05rem; margin-top: .2rem; transition: color .3s; }
   .cat-count { position: absolute; top: 1.6rem; right: 1rem; font-size: .75rem; color: var(--ink-faint); }
-  .cat:hover .cat-label { color: var(--accent); }
+  .cat:hover .cat-label { color: var(--c); }
 
+  .section-head h2 small { font-family: var(--sans); font-size: .72rem; font-weight: 400; color: var(--ink-faint); letter-spacing: .1em; margin-left: .5rem; }
+  .logs { padding: 0; margin: 0; border-top: 1px solid var(--line); }
   .post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem 2rem; }
-  .notes { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 3rem; }
-  .notes li { padding: 1.2rem 0; border-bottom: 1px solid var(--line); }
-  .notes time { font-size: .72rem; color: var(--ink-faint); }
-  .notes p { margin: .3rem 0 0; font-size: .92rem; }
+
+  .duo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 4rem; }
+  .notes :global(.note:first-child) { padding-top: 0; }
+  .shelf { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem 1rem; }
+  .shelf a { display: flex; flex-direction: column; gap: .2rem; }
+  .shelf a :global(.cover) { transition: transform .5s var(--ease); margin-bottom: .5rem; }
+  .shelf a:hover :global(.cover) { transform: translateY(-4px) rotate(-1deg); }
+  .st { font-size: .56rem; color: var(--accent); }
+  .bt { font-family: var(--serif); font-size: .8rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ba { font-size: .66rem; color: var(--ink-faint); }
 
   @media (max-width: 860px) {
     .post-grid { grid-template-columns: repeat(2, 1fr); }
     .cats { grid-template-columns: repeat(3, 1fr); }
     .cat:nth-child(4) { border-left: 0; padding-left: 0; }
+    .now, .duo { grid-template-columns: 1fr; }
+    .duo { gap: 0; }
+    .panel:nth-child(1) { padding-right: 0; border-right: 0; }
+    .panel:nth-child(2) { padding-left: 0; border-top: 1px solid var(--line); }
   }
   @media (max-width: 560px) {
-    .post-grid, .notes { grid-template-columns: 1fr; }
+    .post-grid { grid-template-columns: 1fr; }
     .cats { grid-template-columns: repeat(2, 1fr); }
     .cat { border-left: 0 !important; padding-left: 0 !important; }
   }

@@ -1,0 +1,83 @@
+---
+// GitHub風 年間アクティビティ・ヒートマップ（日曜始まり / JST）
+import { CATEGORIES } from '../consts';
+import { fmtDate, jst, url, type Post } from '../lib/content';
+import { heatmap } from '../lib/stats';
+
+interface Props { posts: Post[]; weeks?: number }
+const { posts, weeks = 53 } = Astro.props;
+const grid = heatmap(posts, weeks);
+const days = grid.flat().filter((d) => !d.future);
+const activeDays = days.filter((d) => d.level > 0).length;
+
+// 月ラベル: その週に1日が含まれる列に表示
+const monthLabels = grid.map((week, i) => {
+  const first = week.find((d) => jst(d.date).d === 1);
+  return first && i > 0 ? `${jst(first.date).m}月` : i === 0 ? `${jst(week[0].date).m}月` : '';
+});
+
+// 連続活動週（ストリーク）
+let streak = 0;
+for (let i = grid.length - 1; i >= 0; i--) {
+  const w = grid[i].filter((d) => !d.future);
+  if (w.some((d) => d.level > 0)) streak++;
+  else if (i !== grid.length - 1) break;
+}
+const tip = (d: (typeof days)[number]) =>
+  d.posts.length
+    ? `${fmtDate(d.date)} — ${d.posts.map((p) => `${CATEGORIES[p.category].label}: ${p.title}`).join(' / ')}${d.km ? `（${d.km.toFixed(1)}km ↑${d.up}m）` : ''}`
+    : `${fmtDate(d.date)} — 記録なし`;
+---
+<section class="heat" aria-label="年間アクティビティ">
+  <div class="head">
+    <p class="eyebrow">Last 12 months</p>
+    <p class="sum num"><b>{activeDays}</b> active days<span>·</span><b>{streak}</b> week streak</p>
+  </div>
+  <div class="scroller" data-heat-scroller>
+    <div class="grid" style={`--weeks:${grid.length}`}>
+      <div class="months" aria-hidden="true">{monthLabels.map((l) => <span>{l}</span>)}</div>
+      <div class="wd eyebrow" aria-hidden="true"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div>
+      <div class="cells">
+        {grid.map((week) => (
+          <div class="col">
+            {week.map((d) =>
+              d.future ? <span class="c future" /> :
+              d.posts.length ? (
+                <a class={`c l${d.level}`} href={url(`/posts/${d.posts[0].id}/`)} title={tip(d)} aria-label={tip(d)} />
+              ) : <span class="c l0" title={tip(d)} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+  <div class="legend eyebrow" aria-hidden="true">
+    Less <i class="c l0" /><i class="c l1" /><i class="c l2" /><i class="c l3" /><i class="c l4" /> More
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-heat-scroller]').forEach((el) => (el.scrollLeft = el.scrollWidth));
+</script>
+
+<style>
+  .heat { --cell: 11px; --gap: 3px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .8rem; flex-wrap: wrap; gap: .5rem; }
+  .head .eyebrow { margin: 0; }
+  .sum { margin: 0; font-size: .78rem; color: var(--ink-soft); display: flex; gap: .5rem; }
+  .sum b { color: var(--ink); font-weight: 500; }
+  .sum span { color: var(--ink-faint); }
+  .scroller { overflow-x: auto; scrollbar-width: thin; padding-bottom: .3rem; }
+  .grid { display: grid; grid-template-columns: 2rem max-content; grid-template-rows: auto auto; width: max-content; margin-inline: auto; }
+  .months { grid-column: 2; display: grid; grid-template-columns: repeat(var(--weeks), calc(var(--cell) + var(--gap))); font-size: .62rem; color: var(--ink-faint); height: 1.1rem; }
+  .months span { white-space: nowrap; }
+  .wd { grid-row: 2; display: grid; grid-template-rows: repeat(7, calc(var(--cell) + var(--gap))); font-size: .55rem; letter-spacing: .05em; line-height: var(--cell); }
+  .cells { grid-row: 2; grid-column: 2; display: flex; gap: var(--gap); }
+  .col { display: flex; flex-direction: column; gap: var(--gap); }
+  .c { display: block; width: var(--cell); height: var(--cell); border-radius: 2px; background: var(--heat-0); transition: transform .2s var(--ease), outline-color .2s; outline: 1px solid transparent; outline-offset: 1px; }
+  .c.l1 { background: var(--heat-1); } .c.l2 { background: var(--heat-2); } .c.l3 { background: var(--heat-3); } .c.l4 { background: var(--heat-4); }
+  .c.future { background: transparent; }
+  a.c:hover { transform: scale(1.35); outline-color: var(--ink); }
+  .legend { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: .6rem; font-size: .58rem; }
+  .legend .c { display: inline-block; }
+</style>
