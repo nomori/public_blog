@@ -138,7 +138,7 @@ function composeOne(slug) {
     if (activity.maxElevationM != null) frontmatter.push(`  maxElevationM: ${activity.maxElevationM}`);
     if (activity.movingTime) frontmatter.push(`  movingTime: "${activity.movingTime}"`);
     if (activity.elapsedTime) frontmatter.push(`  elapsedTime: "${activity.elapsedTime}"`);
-    if (activity.pace) frontmatter.push(`  pace: "${activity.pace}"`);
+    if (activity.pace) frontmatter.push(`  pace: ${JSON.stringify(activity.pace)}`);
     if (hasRoute) frontmatter.push(`  route: /routes/${slug}.json`);
   }
   frontmatter.push('---', '');
