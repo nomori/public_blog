@@ -1,0 +1,128 @@
+name: IssueOps (Issue → PR)
+
+# Issue Forms（.github/ISSUE_TEMPLATE/）から記事・つぶやき・読書ログを作り、PR を自動作成する。
+#
+#   1. Issue 作成（opened）    → 作成者を自動アサイン（＝下書き中。この間は何も生成しない）
+#   2. アサインを外す（unassigned）→ scripts/issue-handler.mjs で生成 → ビルド確認 → PR 作成
+#   3. PR を Merge             → 既存の deploy.yml が本番へデプロイ（Issue は "Closes #n" で自動クローズ）
+#
+# 初回のみ: main/master への push 時に自動で type:* ラベルが作成されます。
+
+on:
+  push:
+    branches: [main, master]
+  issues:
+    types: [opened, unassigned]
+  workflow_dispatch: # 手動実行用
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: issueops-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------------------
+  # 初回・更新時: type ラベルを自動作成/確認 (push 時または手動実行)
+  # -------------------------------------------------------------------------
+  setup-labels:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          gh label create "type:book"    --color 8B5CF6 --description "IssueOps: 読書ログ" --force
+          gh label create "type:note"    --color 0EA5E9 --description "IssueOps: つぶやき" --force
+          gh label create "type:article" --color 10B981 --description "IssueOps: 記事"     --force
+          gh label create "issueops"     --color 6B7280 --description "IssueOps で自動作成された PR" --force
+
+  # -------------------------------------------------------------------------
+  # Issue 作成時: 作成者を自動アサイン（下書き中にする）
+  # -------------------------------------------------------------------------
+  claim:
+    if: >
+      github.event.action == 'opened' &&
+      contains(join(github.event.issue.labels.*.name, ','), 'type:') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) &&
+      toJSON(github.event.issue.assignees) == '[]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      N: ${{ github.event.issue.number }}
+      AUTHOR: ${{ github.event.issue.user.login }}
+    steps:
+      - run: |
+          gh issue edit "$N" --add-assignee "$AUTHOR"
+          gh issue comment "$N" --body "📝 下書き中です（@$AUTHOR をアサインしました）。
+          本文の編集や写真の追加は自由にどうぞ。仕上がったら **アサインを外す** と PR を自動作成します。"
+
+  # -------------------------------------------------------------------------
+  # アサイン解除時: コンテンツ生成 → PR 作成
+  # -------------------------------------------------------------------------
+  build-post:
+    if: >
+      github.event.action == 'unassigned' &&
+      github.event.issue.state == 'open' &&
+      contains(join(github.event.issue.labels.*.name, ','), 'type:') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) &&
+      toJSON(github.event.issue.assignees) == '[]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      N: ${{ github.event.issue.number }}
+    steps:
+      - name: 受付リアクション
+        run: gh api "repos/$GH_REPO/issues/$N/reactions" -f content=eyes --silent || true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Issue からコンテンツを生成
+        id: gen
+        run: node scripts/issue-handler.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # 非公開リポジトリで添付画像を取得できない場合は PAT を Secrets に登録
+          ATTACHMENT_TOKEN: ${{ secrets.ISSUEOPS_PAT }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+
+      - name: ビルド確認（スキーマ違反などを PR 前に検出）
+        run: npx astro build
+
+      - name: PR を作成 / 更新
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: issue/${{ github.event.issue.number }}
+          delete-branch: true
+          title: ${{ steps.gen.outputs.title }}
+          body-path: ${{ steps.gen.outputs.body_path }}
+          commit-message: "${{ steps.gen.outputs.title }} (#${{ github.event.issue.number }})"
+          labels: issueops
+
+      - name: Issue に PR を通知
+        if: steps.pr.outputs.pull-request-url != ''
+        run: |
+          gh issue comment "$N" --body "✅ PR を${{ steps.pr.outputs.pull-request-operation == 'updated' && '更新' || '作成' }}しました: ${{ steps.pr.outputs.pull-request-url }}
+          内容を確認して **Merge** すると公開されます。"
+
+      - name: 失敗を通知
+        if: failure()
+        run: |
+          gh issue comment "$N" --body "❌ 生成に失敗しました。${{ steps.gen.outputs.error && format('（{0}）', steps.gen.outputs.error) || '' }}
+          ログ: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          修正したら、再度自分をアサイン → アサインを外すと再実行します。"

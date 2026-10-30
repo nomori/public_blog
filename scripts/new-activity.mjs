@@ -268,7 +268,7 @@ async function processFile(file) {
     a.maxEle != null ? `  maxElevationM: ${Math.round(a.maxEle)}` : null,
     a.moving ? `  movingTime: "${hms(a.moving)}"` : null,
     a.elapsed ? `  elapsedTime: "${hms(a.elapsed)}"` : null,
-    isRun && a.moving ? `  pace: "${pace(a.moving, a.distKm)}"` : null,
+    isRun && a.moving ? `  pace: ${JSON.stringify(pace(a.moving, a.distKm))}` : null,
     `  route: /routes/${slug}.json`,
     '---',
     '',

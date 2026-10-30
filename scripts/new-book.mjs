@@ -10,6 +10,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { lookupBook, downloadCover, slugify } from './lib/books.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const BOOKS_DIR = path.join(ROOT, 'src/content/books');
@@ -32,75 +33,6 @@ if (!rawInput) {
 
 const isbnClean = rawInput.replace(/[^0-9X]/gi, '');
 
-async function fetchFromOpenBD(isbn) {
-  try {
-    const res = await fetch(`https://api.openbd.jp/v1/get?isbn=${isbn}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !data[0]) return null;
-    const b = data[0];
-    const s = b.summary || {};
-    const o = b.onix || {};
-    const desc = b.onix?.CollateralDetail?.TextContent?.[0]?.Text || '';
-    const pages = Number(o?.DescriptiveDetail?.Extent?.[0]?.ExtentValue) || undefined;
-    return {
-      title: s.title || '',
-      author: s.author || '',
-      publisher: s.publisher || '',
-      isbn: s.isbn || isbn,
-      coverUrl: s.cover || '',
-      pages,
-      description: desc,
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-async function fetchFromGoogleBooks(isbn) {
-  try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data.items || !data.items[0]) return null;
-    const vi = data.items[0].volumeInfo || {};
-    const img = vi.imageLinks?.thumbnail || vi.imageLinks?.smallThumbnail || '';
-    return {
-      title: vi.title || '',
-      author: (vi.authors || []).join(', '),
-      publisher: vi.publisher || '',
-      isbn,
-      coverUrl: img.replace(/^http:/, 'https:'),
-      pages: vi.pageCount || undefined,
-      description: vi.description || '',
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-async function downloadCover(url, destPath) {
-  if (!url) return false;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const arrayBuffer = await res.arrayBuffer();
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-function slugify(s) {
-  return s
-    .toLowerCase()
-    .replace(/[^\w\d\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'book';
-}
-
 async function run() {
   let bookData = {
     title: rawInput,
@@ -113,13 +45,8 @@ async function run() {
   };
 
   if (!isManual && isbnClean.length >= 10) {
-    process.stdout.write(`🔍 ISBN ${isbnClean} を検索中 (openBD)... `);
-    let info = await fetchFromOpenBD(isbnClean);
-    if (!info || !info.title) {
-      process.stdout.write(`Google Books を検索中... `);
-      info = await fetchFromGoogleBooks(isbnClean);
-    }
-    if (info && info.title) {
+    const info = await lookupBook(isbnClean);
+    if (info) {
       console.log(`ヒット: 『${info.title}』`);
       bookData = { ...bookData, ...info };
     } else {

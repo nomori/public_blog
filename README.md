@@ -141,6 +141,73 @@ npm run ai -- new "高尾山から陣馬山まで朝トレラン。雲海が最�
 
 ---
 
+### コンテンツ（記事・つぶやき・本）の削除・非公開
+
+#### 1. 一時的に非公開にする場合（下書きに戻す）
+記事の Markdown ファイル冒頭で `draft: true` に変更して push すると、サイト一覧や詳細から自動的に除外されます。
+```yaml
+---
+title: "記事タイトル"
+draft: true   # <-- これを追加（または false から変更）
+---
+```
+
+#### 2. 完全に削除する場合
+Markdown ファイルと、関連アセット（写真・ルートデータ）を削除して push します。
+- **記事（Posts）**: `src/content/posts/<slug>.md`
+  - 写真（あれば）: `src/assets/posts/<slug>/`
+  - ルート（あれば）: `public/routes/<slug>.json`
+  - 下書き（あれば）: `drafts/<slug>/`
+- **つぶやき（Notes）**: `src/content/notes/<id>.md`（添付画像があれば `public/notes/<id>/`）
+- **読書ログ（Books）**: `src/content/books/<slug>.md`（書影画像は `src/assets/books/<slug>.jpg`）
+
+> [!TIP]
+> - **初期サンプルデータについて**: 初期状態の `src/content/notes/` や `src/content/books/` に入っているファイルは表示確認用のダミーです。不要なものはすべて削除してしまって構いません（フォルダ内が 0 件になっても正常にビルド・動作します）。
+> - **記事と同日のつぶやき（dayNotes）の連動**: 記事ページの下部に同日のつぶやきが表示されますが、これは同じ日付（YYYY-MM-DD）の Note を自動で拾っているだけです。記事を消しても Note は消えず、Note を消しても記事はエラーになりません（完全に独立しています）。
+> - **本番反映**: push すると GitHub Actions の自動デプロイが走り、本番サーバ側からも自動でクリーンアップ（`rsync --delete`）されます。
+
+---
+
+## 外出先からの更新（IssueOps：Issue → PR → 公開）
+
+PC がなくても、スマホの GitHub アプリ／ブラウザから **Issue を書くだけ** で記事・つぶやき・読書ログを公開できます。
+
+```
+New issue → テンプレートを選んで入力 → 自分が自動アサイン（＝下書き中。何度でも編集・写真追加OK）
+          → アサインを外す → Actions が生成 → ビルド確認 → PR 自動作成 → Merge で公開
+```
+
+| テンプレート | ラベル | 生成されるもの |
+|---|---|---|
+| 📚 読書ログ | `type:book` | ISBN から書影・書誌を取得して `src/content/books/` に作成（AI推敲は任意） |
+| 💬 つぶやき | `type:note` | `src/content/notes/` に作成。添付写真は `public/notes/<id>/` へ |
+| 📝 記事 | `type:article` | `src/content/posts/` に作成。添付写真は本文中の位置に埋め込み（AI成形は任意） |
+
+- 修正したいときは、Issue に**自分を再アサイン → 編集 → アサインを外す**と同じ PR が更新されます。
+- 添付写真は長辺 1600px の JPEG に変換し、**EXIF（位置情報など）は削除**します。
+- 処理対象は、リポジトリの Owner／Member／Collaborator が作成した Issue だけです。
+- 記録（Logs：GPX）は対象外です（GitHub の Issue に `.gpx` を添付できないため）。PC から `npm run draft:gpx` で作成してください。
+
+### 初回セットアップ（1回だけ必要）
+
+1. **GitHub リポジトリ設定で Actions に PR 作成権限を許可する**（GitHub の初期設定では無効化されているため必須です）
+   - リポジトリの **Settings → Actions → General**（または URL: `https://github.com/<owner>/<repo>/settings/actions`）を開く
+   - 画面最下部の **Workflow permissions** で以下を設定して **Save** を押す：
+     - [x] **Read and write permissions** を選択
+     - [x] **Allow GitHub Actions to create and approve pull requests** にチェックを入れる  
+       *(※これにチェックがないと `GitHub Actions is not permitted to create or approve pull requests` エラーになります)*
+2. **コードを `main`/`master` に push する**
+   - push されると Actions が自動で必要なラベル（`type:book`, `type:note`, `type:article`, `issueops`）を作成します。
+3. **（任意）AI成形を使う場合**
+   - **Settings → Secrets and variables → Actions** に `GEMINI_API_KEY` を登録
+4. **（任意）非公開（Private）リポジトリで添付写真を使う場合**
+   - Issue にアップロードした写真を取得するため、`Contents: Read` 権限を持った Fine-grained PAT を Secrets の `ISSUEOPS_PAT` に登録
+
+> 実装: [.github/workflows/issue-ops.yml](.github/workflows/issue-ops.yml) / [scripts/issue-handler.mjs](scripts/issue-handler.mjs) / [.github/ISSUE_TEMPLATE/](.github/ISSUE_TEMPLATE/)  
+> ローカル確認: `node scripts/issue-handler.mjs --event event.json --dry-run`
+
+---
+
 ## サイトマップ（ページ構成）
 
 - `/` : トップ（累計・This Month・目標進捗・最新の記録＆記事・つぶやき・読書中）
